@@ -4,7 +4,6 @@
 # This reduces the memory allocation dramatically
 # Hello World branch3 modified
 
-using LinearAlgebra
 using SparseArrays
 
 @doc """
