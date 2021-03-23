@@ -4,7 +4,7 @@
 # This reduces the memory allocation dramatically
 # Hello World branch3 modified
 
-using SparseA2222
+using SparseArrays
 
 @doc """
 Construct (mN X mN) sparse block diagonal matrix from (m X m) block A.
