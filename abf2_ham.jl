@@ -3,9 +3,6 @@
 # the blockdiagonal function returns the sparse matrix.
 # This reduces the memory allocation dramatically
 
-# toto: 1. generalization to higher dimensions.
-# 2. matrix index <-> lattice position(braket)
-# 3. Optimization
 
 using LinearAlgebra
 using SparseArrays
