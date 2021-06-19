@@ -1,0 +1,21 @@
+Metadata-Version: 2.1
+Name: quantumxy
+Version: 0.0.1
+Summary: Tools for quantum XY chain with periodic boundary condition
+Home-page: https://github.com/xinzhao-jungle/
+Author: Example Author
+Author-email: yeongjun@ust.ac.kr
+License: UNKNOWN
+Project-URL: Bug Tracker, https://github.com/xinzhao-jungle/repository/issues
+Description: Jun 19, 2021
+        Yeongjun Kim
+        yeongjun@ust.ac.kr
+        
+        Tools for quantumXY model.
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown

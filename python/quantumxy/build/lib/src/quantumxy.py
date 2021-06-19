@@ -86,26 +86,28 @@ def basis_correlations(N = 3, r = 1):
         for s in basis_i:
             m[i] += (1. if s else -1.)
 
+    for (i, basis_i) in enumerate(basis):
         for n in range(0, N):
             if not(basis_i[n]^basis_i[(n+r)%N]):
                 corr[i] += 1
             else:
+                basis = basis_vectors(N = N)
                 corr[i] -= 1
 
     return corr/N - (m/N)**2
 
 def compute_magnetization(v):
-    N = np.int(np.log2(len(v)))
+    N = np.int(log2(len(v)))
     m_basis = basis_magnetizations(N = N)
     m = 0
     for i in range(0, len(v)):
-        m += m_basis[i]*(v[i]**2)
+        m += m_basis[i]*abs2(v[i])
     return m
 
 def compute_correlation(v, r):
-    N = np.int(np.log2(len(v)))
+    N = np.int(log2(len(v)))
     corr_basis = basis_correlations(N = N, r = r)
     corr = 0
     for i in range(0, len(v)):
-        corr += corr_basis[i]*(v[i]**2)
+        corr += corr_basis[i]*abs2(v[i])
     return corr

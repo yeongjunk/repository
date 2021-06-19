@@ -6,9 +6,9 @@ export σ_p, σ_m, σ_z, basis_vectors, ham_xy, ham_xy_kron,
 using LinearAlgebra
 using SparseArrays
 
-const σ_p = sparse([0. 1.; 0. 0.])
-const σ_m = sparse([0. 0.; 1. 0.])
-const σ_z = sparse([1. 0.; 0. -1.])
+const σ_p = sparse([0 1.; 0 0])
+const σ_m = sparse([0 0; 1. 0])
+const σ_z = sparse([1 0; 0 -1.])
 
 @doc """
 Full basis vectors encoded as up: 1, down: 0.
@@ -26,10 +26,10 @@ end
 @doc """
 Construct Hamiltonian of quantum XY spin model using kronecker products.
 N: Number of spins
-J: interaction strength
+J: exchange interaction strength
 h: external magnetic field strength
 """
-function ham_xy_kron(;N::Integer = 3, J::Real = 1., h::Real = 1.)
+function ham_xy_kron(;N = 3, J = 1., h = 1.)
     H = spzeros(Float64, 2^N, 2^N)
     for i = 0:N-2
         H .-= J*kron(I(2^i), σ_p, σ_m, I(2^(N-i-2)))
@@ -50,10 +50,10 @@ end
 @doc """
 Construct Hamiltonian of quantum XY spin model using kronecker products.
 N: Number of spins
-J: interaction strength
+J: exchange interaction strength
 h: external magnetic field strength
 """
-function ham_xy(; N::Integer = 3, J::Real = 1., h::Real = 1.)
+function ham_xy(; N = 3, J = 1., h = 1.)
     v = basis_vectors(N = N)
     down_up = BitVector([0; 1])
     row = Int64[]
@@ -93,7 +93,7 @@ function ham_xy(; N::Integer = 3, J::Real = 1., h::Real = 1.)
 end
 
 
-function basis_magnetizations(; N::Integer = 3)
+function basis_magnetizations(; N = 3)
     basis = basis_vectors(N = N)
     m = zeros(Float64, 2^N)
     for (i, basis_i) in enumerate(basis)
@@ -104,20 +104,30 @@ function basis_magnetizations(; N::Integer = 3)
     return m/N
 end
 
-function basis_correlations(; N::T = 3, r::T = 1) where T <: Integer
+function basis_correlations(; N = 3, r = 1)
     basis = basis_vectors(N = N)
     corr = zeros(Float64, 2^N)
     m = zeros(Float64, 2^N)
     for (i, basis_i) in enumerate(basis)
-        for (j, sj) in enumerate(basis_i)
-            m[i] += (sj ? 1. : - 1.)
-            corr[i] += !xor(basis_i[j], basis_i[mod1(j+r, N)]) ? 1. : -1.
+        for s in basis_i
+            s ? m[i] += 1 : m[i] -= 1
+        end
+    end
+
+    for (i, basis_i) in enumerate(basis)
+        for n in 1:N
+            if !xor(basis_i[n], basis_i[mod1(n+r, N)])
+                corr[i] += 1
+            else
+                basis = basis_vectors(N = N)
+                corr[i] -= 1
+            end
         end
     end
     return corr/N .- (m/N).^2
 end
 
-function compute_magnetization(v::Vector{Float64})
+function compute_magnetization(v)
     N = convert(Int64, log2(length(v)))
     m_basis = basis_magnetizations(N = N)
     m = 0
@@ -127,7 +137,7 @@ function compute_magnetization(v::Vector{Float64})
     return m
 end
 
-function compute_correlation(v::Vector{Float64}, r::Integer)
+function compute_correlation(v, r)
     N = convert(Int64, log2(length(v)))
     corr_basis = basis_correlations(N = N, r = r)
     corr = 0

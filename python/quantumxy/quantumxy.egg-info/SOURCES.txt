@@ -1,0 +1,9 @@
+README.md
+setup.py
+quantumxy.egg-info/PKG-INFO
+quantumxy.egg-info/SOURCES.txt
+quantumxy.egg-info/dependency_links.txt
+quantumxy.egg-info/top_level.txt
+setup/__init__.py
+src/__init__.py
+src/quantumxy.py

@@ -1,0 +1,5 @@
+setup.py
+src/testpack.egg-info/PKG-INFO
+src/testpack.egg-info/SOURCES.txt
+src/testpack.egg-info/dependency_links.txt
+src/testpack.egg-info/top_level.txt
