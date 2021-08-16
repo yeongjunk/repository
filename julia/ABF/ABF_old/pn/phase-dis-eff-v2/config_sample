@@ -1,0 +1,18 @@
+{
+"N" : 1001,
+"W" : 0.1,
+"delta_min" : -2.,
+"delta_max" : 6.,
+"delta_num" : 6,
+"delta_log" : true,
+
+"theta_min" : 0.01,
+"theta_max" : 0.25,
+"theta_num" : 2,
+"vl" : -0.004,
+"vu" : 0.004,
+
+"seed" : 1234,
+"R" : 1000,
+"core" : 2
+}

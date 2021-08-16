@@ -1,0 +1,16 @@
+{
+"N" : 50,
+"W_min" : 0.01,
+"W_max" : 0.01,
+"W_num" : 1,
+"theta" : 0.25,
+"phi_min": 0.,
+"phi_max": 0.5,
+"phi_num": 10,
+"seed" : 1234,
+"R" : 200,
+"PN_bin_num" : 100,
+"PN_bin_min" : 1,
+"PN_bin_max" : 20,
+"E_bin_num" : 30
+}

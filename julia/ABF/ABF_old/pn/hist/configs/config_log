@@ -1,0 +1,15 @@
+{
+"seed" : 1234,
+"E" : -1.,
+"E_range" : 0.025,
+"W_min" : -5. ,
+"W_max" : 0. ,
+"W_num" : 5 ,
+"theta_min": [0., 0.] ,
+"theta_max": [0.25, 0.25] ,
+"theta_num": [5, 5],
+"N" : 100,
+"R" : 1000,
+"bin_num" : 100,
+"sample_max" : 2000
+}

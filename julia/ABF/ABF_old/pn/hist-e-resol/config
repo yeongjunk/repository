@@ -1,0 +1,19 @@
+{
+"E" : -1.,
+"E_window" : 0.025,
+"N" : 100,
+"W_min" : 0.01,
+"W_max" : 4.,
+"W_num" : 5,
+"W_log" : false,
+"theta_min" : [0.25, 0.25] ,
+"theta_max" : [0.25, 0.25] ,
+"theta_num" : [1, 1],
+"theta_diag" : false,
+"seed" : 1234,
+"R" : 30000,
+"PN_bin_num" : 100,
+"PN_min" : 1,
+"PN_max" : 20,
+"E_bin_num" : 30
+}

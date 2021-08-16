@@ -1,0 +1,22 @@
+{
+"N" : 101,
+"W" : 0.1,
+"delta_min" : -2.,
+"delta_max" : -2.,
+"delta_num" : 1,
+"delta_log" : true,
+
+"theta_min" : 0.01,
+"theta_max" : 0.25,
+"theta_num" : 2,
+
+"seed" : 1234,
+"R" : 500,
+
+"PN_bin_num" : 40,
+"E_abs_bw" : false,
+"E_leftedge" : -0.5,
+"E_rightedge" : 0.5,
+"E_bin_num" : 51,
+"core" : 2
+}
