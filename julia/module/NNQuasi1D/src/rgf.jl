@@ -4,20 +4,29 @@ using LinearAlgebra
 @doc """
 Hamiltonian of isolated strip used for RGF.
 """
-function isolated_strip(; M::Integer = 3, W::Real = 1., t::Real = 1., rng = nothing)
-    if rng != nothing
-        H_n = diagm(0 => W*(rand(rng, M) .- 0.5))
-    else
-        H_n = diagm(0 => W*(rand(M) .- 0.5))
+function isolated_strip!(H_n; M::Integer = 3, W::Real = 1., t::Real = 1., rng = Random.GLOBAL_RNG)
+    @assert M >= 3 # Required due to periodic boundary condition
+    H_n[diagind(H_n)] = W*(rand(rng, M) .- 0.5)
+    for i in 1:M
+        H_n[i, mod1(i+1, M)] = t
+        H_n[i, mod1(i-1, M)] = t
+        H_n[mod1(i+1, M), i] = t
+        H_n[mod1(i-1, M), i] = t
     end
+end
 
-    if M >= 2
-        for i in 1:M
-            H_n[i, mod1(i+1, M)] = t
-            H_n[i, mod1(i-1, M)] = t
-            H_n[mod1(i+1, M), i] = t
-            H_n[mod1(i-1, M), i] = t
-        end
+@doc """
+Hamiltonian of isolated strip used for RGF.
+"""
+function isolated_strip(; M::Integer = 3, W::Real = 1., t::Real = 1., rng = Random.GLOBAL_RNG)
+    @assert M >= 3 # Required due to periodic boundary condition
+
+    H_n = diagm(0 => W*(rand(rng, M) .- 0.5))
+    for i in 1:M
+        H_n[i, mod1(i+1, M)] = t
+        H_n[i, mod1(i-1, M)] = t
+        H_n[mod1(i+1, M), i] = t
+        H_n[mod1(i-1, M), i] = t
     end
     return H_n
 end
