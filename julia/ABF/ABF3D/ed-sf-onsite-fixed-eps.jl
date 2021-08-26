@@ -71,7 +71,7 @@ function abf3d_scan(p::Params)
                 droptol!(H_prj, 1E-12)
 
                 e, psi = eigs(Symmetric(H_prj), nev = p.L[i]^3÷500, sigma = 0.)
-                idx = findall(x -> E_min < x && x < E_max, e)
+                idx = findall(x -> p.E_min < x && x < p.E_max, e)
                 @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 12), r = fill(r, length(e)))
                 for k in 1:length(p.q)
                     @views insertcols!(df_temp, q_str[k] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx, q = p.q[k]), sigdigits = 12))
