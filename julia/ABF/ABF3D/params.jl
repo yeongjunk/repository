@@ -4,6 +4,7 @@ struct ABF_Params
     seed::Int64
     R::Int64
     q::Vector{Float64}
+
 end
 
 function readconfig(config::Dict)

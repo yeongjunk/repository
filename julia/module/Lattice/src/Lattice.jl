@@ -90,17 +90,17 @@ module Lattice
     @doc """
     Corresponding index of lattice site (m, n, u)
     """
-    function index(ltc::Lattice3D, (l, m, n, u)::NTuple{4, Integer})
+    @inline function index(ltc::Lattice3D, (l, m, n, u)::NTuple{4, Integer})
         @assert u <= ltc.U
         L = ltc.L
         M = ltc.M
         N = ltc.N
         U = ltc.U
 
-        l = mod1(l,L)
-        m = mod1(m,M)
-        n = mod1(n,N)
-        i = (l-1)*M*N*U + (m-1)*N*U + (n-1)*U + (u-1) + 1
+        l = mod1(l, L)
+        m = mod1(m, M)
+        n = mod1(n, N)
+        i = (l - 1)*M*N*U + (m-1)*N*U + (n-1)*U + (u-1) + 1
         return i
     end
 
