@@ -1,12 +1,16 @@
-using LinearAlgebra, SparseArrays, Arpack
+using LinearAlgebra, SparseArrays, KrylovKit
+using LinearMaps
 using Random
 using DataFrames, CSV
 using ArgParse, JSON
-
 # Custom modules
 using ABF
 using Lattice
 using PN
+function construct_linear_map(A)
+    F = factorize(A)
+    LinearMap{eltype(A)}((y, x) -> ldiv!(y, F, x), size(A, 1), ismutating = true)
+end
 
 function box_inds(ltc, b)
     L = ltc.L
@@ -56,7 +60,7 @@ function abf3d_scan(p::Params)
         ltc_p = Lattice3D(p.L[i], p.L[i], p.L[i], 1)
         boxidx = box_inds(ltc_p, p.l[i])
         for j in 1:length(p.θ)
-            fn = "L$(p.L[i])_Th$(i).csv" #File name
+            fn = "L$(p.L[i])_Th$(j).csv" #File name
 
             H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
             df = DataFrame(E = Float64[], r = Int64[])
@@ -69,10 +73,11 @@ function abf3d_scan(p::Params)
                 D = Diagonal(rand(rng, size(H,1)) .- 0.5)
                 H_prj = project(U'*(H + D)*U)
                 droptol!(H_prj, 1E-12)
-
-                e, psi = eigs(Symmetric(H_prj), nev = p.L[i]^3÷500, sigma = 0.)
-                idx = findall(x -> p.E_min < x && x < p.E_max, e)
-                @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 12), r = fill(r, length(e)))
+                e_inv, psi, info = eigsolve(construct_linear_map(H_prj), size(H_prj, 1), div(p.L[i]^3, 500), :LM, issymmetric = true, krylovdim = max(30, 2*div(p.L[i]^3, 500)+1));
+		e = 1 ./ e_inv
+                psi = reduce(hcat, psi)
+		idx = findall(x -> p.E_min < x && x < p.E_max, e)
+                @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 12), r = fill(r, length(idx)))
                 for k in 1:length(p.q)
                     @views insertcols!(df_temp, q_str[k] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx, q = p.q[k]), sigdigits = 12))
                 end

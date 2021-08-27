@@ -24,5 +24,5 @@ function readconfig(config::Dict)
         error("Array size of l and L should be the same")
     end
 
-    return Params(l, L, θ, seed, R, q, E_min, E_max)
+    return Params(l, L, θ, seed, R, q ,config["E_min"], config["E_max"])
 end
