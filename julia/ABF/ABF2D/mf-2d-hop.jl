@@ -8,10 +8,8 @@ using Plots
 using Arpack
 using Statistics
 using DataFrames
-
-using SparseArrays
-using LinearAlgebra
-using Random
+using CSV
+LinearAlgebra.BLAS.set_num_threads(16)
 function phase_dis(H; V = 1., rng = nothing)
     D = convert.(ComplexF64, H)
     if rng == nothing
@@ -107,8 +105,8 @@ function box_idx2d(ltc, b)
     return box_inds
 end
 
-L_full = 20:20:200
-
+L_full = 20:20:140
+# L_full = 5:1:8
 df = DataFrame(q = Float64[], a = Float64[], fa = Float64[], tau = Float64[], L = Float64[])
 for (k, L) in enumerate(L_full)
     bs = [1;]
@@ -118,7 +116,7 @@ for (k, L) in enumerate(L_full)
     l_p = Lattice2D(L, L, 1)
     H, U = ham_fe(ltc, -1, 1, 0.25);
     # D = spdiagm(0 => (rand(size(H, 1)) .- 0.2));
-    D = phase_dis(H)
+    D = hop_dis(H)
     E, psi = eigen(Hermitian((Matrix(project(U'*(H + D)*U)))), 0.99, 1.01);
     R = size(psi, 2)
     α = Array{Float64}(undef, length(qs), length(bs), R)
@@ -146,3 +144,6 @@ for (k, L) in enumerate(L_full)
     df_temp = DataFrame(q = vec(qs), a = vec(α), fa = vec(fα), tau = vec(τ_q), L = L_rep)
     append!(df, df_temp)
 end
+
+CSV.write("2d-hop-mf-data.csv", df)
+println("written")
