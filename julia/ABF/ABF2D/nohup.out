@@ -1,0 +1,32 @@
+written
+written
+written
+written
+ERROR: LoadError: ArgumentError: Sampler for this object is not defined
+Stacktrace:
+ [1] Random.Sampler(#unused#::Type{MersenneTwister}, sp::Random.SamplerTrivial{Float64, Float64}, #unused#::Val{1})
+   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:145
+ [2] Random.Sampler(rng::MersenneTwister, x::Random.SamplerTrivial{Float64, Float64}, r::Val{1})
+   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:139
+ [3] rand(rng::MersenneTwister, X::Random.SamplerTrivial{Float64, Float64}) (repeats 2 times)
+   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:253
+ [4] rand(X::Float64)
+   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:258
+ [5] top-level scope
+   @ ~/codes/repository/julia/ABF/ABF2D/mf-2d-onsite.jl:119
+in expression starting at /home/yjkim/codes/repository/julia/ABF/ABF2D/mf-2d-onsite.jl:111
+ERROR: LoadError: ArgumentError: Sampler for this object is not defined
+Stacktrace:
+ [1] Random.Sampler(#unused#::Type{MersenneTwister}, sp::Random.SamplerTrivial{Float64, Float64}, #unused#::Val{1})
+   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:145
+ [2] Random.Sampler(rng::MersenneTwister, x::Random.SamplerTrivial{Float64, Float64}, r::Val{1})
+   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:139
+ [3] rand(rng::MersenneTwister, X::Random.SamplerTrivial{Float64, Float64}) (repeats 2 times)
+   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:253
+ [4] rand(X::Float64)
+   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:258
+ [5] top-level scope
+   @ ~/codes/repository/julia/ABF/ABF2D/mf-2d-onsite.jl:118
+in expression starting at /home/yjkim/codes/repository/julia/ABF/ABF2D/mf-2d-onsite.jl:111
+written
+written
