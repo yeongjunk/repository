@@ -1,4 +1,5 @@
 using MAT
+using Dates
 @everywhere include("/home/yjkim/codes/repository/julia/module/NNQuasi1D/src/tmm.jl")
 @everywhere using Random
 @everywhere using LinearAlgebra
@@ -11,7 +12,7 @@ using MAT
     20.0, 21.0, 22.0, 24.0, 26.0, 28.0, 30.0]
 @everywhere M = collect(3:1:10)
 @everywhere N = Int64(10^7)
-@everywhere seed = [12411 + i for i in 1:100]
+@everywhere seed = [9951 + i for i in 1:100]
 for i in 1:nprocs()
 	@spawnat procs()[i] rng = MersenneTwister(seed[i])
 end
@@ -25,4 +26,4 @@ println("Number of Processors: ",nprocs())
 #    xi[:, i] /= M[i]
 #end
 display(xi)
-MAT.matwrite("xi-cubic.mat", Dict("xi" => xi, "W" => W, "M" => M, "N"=>N, "seed"=>seed, "N_qr" => 10))
+MAT.matwrite(Dates.format(now(), "HHMMSS")*"-xi-cubic.mat", Dict("xi" => xi, "W" => W, "M" => M, "N"=>N, "seed"=>seed, "N_qr" => 10))
