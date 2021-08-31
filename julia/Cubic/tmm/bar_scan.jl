@@ -1,4 +1,3 @@
-include("/Users/pcs/codes/project/julia/module/NNQuasi1D/src/tmm.jl")
 using Random
 using LinearAlgebra
 using SparseArrays
@@ -9,15 +8,16 @@ W = [10., 10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0,
     16.5, 16.6, 16.7, 16.8, 17.0, 17.2, 17.5, 18.0, 18.5, 19.0,
     20.0, 21.0, 22.0, 24.0, 26.0, 28.0, 30.0]
 M = collect(3:1:11)
-seed = 12411
-rng = MersenneTwister(seed)
-N = Int64(10^7)
+seed = [12411 + i for i in 1:100]
+rng = [MersenneTwister(seed[i]) for i in 1:40]
+N = Int64(2*10^2)
 
 savedir = "$(homedir())"
 xi = Array{Float64}(undef, length(W), length(M))
-@Threads.threads for i in 1:length(W)
+@time @Threads.threads for i in 1:length(W)
+    rng_inner = rng[i]
     for j in 1:length(M)
-        xi[i, j] = tmm_bar(M = M[j], E = 0., W = W[i], rng = rng, N = N, N_qr = 10)
+        xi[i, j] = tmm_bar(M = M[j], E = 0., W = W[i], rng = rng_inner, N = N, N_qr = 10)
     end
 end
 

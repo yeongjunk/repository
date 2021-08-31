@@ -66,9 +66,9 @@ module Lattice
         N = ltc.N
         U = ltc.U
 
-        m = mod1(m,M)
-        n = mod1(n,N)
-        i = (m - 1)*n*U + (n - 1)*U + (u - 1) + 1
+        m = mod1(m, M)
+        n = mod1(n, N)
+        i = (m - 1)*N*U + (n - 1)*U + (u - 1) + 1
         return i
     end
 
@@ -100,7 +100,7 @@ module Lattice
         l = mod1(l, L)
         m = mod1(m, M)
         n = mod1(n, N)
-        i = (l - 1)*M*N*U + (m-1)*N*U + (n-1)*U + (u-1) + 1
+        i = (l - 1)*M*N*U + (m - 1)*N*U + (n - 1)*U + (u - 1) + 1
         return i
     end
 

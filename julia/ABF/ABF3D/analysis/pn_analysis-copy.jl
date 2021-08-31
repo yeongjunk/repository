@@ -2,82 +2,177 @@ using DataFrames, CSV, MAT
 using ROAG, Binning
 using Statistics
 using StatsBase
-
-
+using Glob
+using Plots
+using LsqFit
+using LaTeXStrings
 ##
-L = [10 15 20 25 30]
-R = [1200 400 100 65 50]
-dir = ["/Users/pcs/data/ABF-sum/3d-sf-on-pn-roag/full-ipr/L$(L[i])/" for i in 1:length(L)]
-θ = range(0.0001, 0.25, length = 26)
+L = [20 30 40 50]
+rdir = "/Users/pcs/data/ABF-sum/3d-sf-on-pn-roag/par-ipr-fix-eps/"
+dir = [rdir*"L$(L[i])/" for i in 1:length(L)]
+
+
+θ = range(0.08, 0.12, length = 21)
+
 savedir = "/Users/pcs/data/ABF3D/analyzed-data/"
-E_edges = collect(range(0.6, 1.4, length = 40))
-# E_edges = collect(0.65:0.1:1.35)
-# pushfirst!(E_edges,0.625)
-# pushfirst!(E_edges, 0.6)
-# push!(E_edges,  1.375)
-# push!(E_edges,  1.4)
-# push!(E_edges, 1.30)
-# push!(E_edges, 0.70)
-# sort!(E_edges)
-##
-function load_file(dir, i, j, L, R, θ)
-    fn = "L$(L[i])_Th$(j)_R$(R[i]).csv"
-    return CSV.read(dir*fn, DataFrame)
-end
 
-function pn_mean_binned(E::AbstractArray{T}, pn::AbstractArray{T}, E_edges::AbstractArray{T}) where T <: Number
-    pn_mean = Vector{Float64}(undef, length(E_edges)-1)
-    lbl = binning_sorted(E, E_edges) # binning
-    for i in 1:length(E_edges) - 1
-        @views pn_mean[i] = mean(log.(pn[findall(a -> a == i, lbl)]))
+ipr_mean = Array{Float64}(undef, length(θ), length(L))
+ipr_std = similar(ipr_mean)
+ipr_ste = similar(ipr_mean)
+for i in 1:length(L)
+    for j in 1:length(θ)
+        df = CSV.read(dir[i]*"L$(L[i])_Th$j.csv", DataFrame)
+        ipr_mean[j, i] = mean(df.q2)
+        ipr_std[j, i] = std(df.q2)
+        ipr_ste[j, i] = ipr_std[j, i] / sqrt(length(df.E))
     end
-    return pn_mean::Vector{Float64}
 end
 
-function pn_scan(;dir, L, R, θ, E_edges)
-    pn_m_m = Array{Float64}(undef, length(E_edges)-1 ,length(θ), length(L))
-    pn_m_std = similar(pn_m_m)
-    for i in 1:length(L)
-        println("i = ", i)
-        for j in 1:length(θ)
-            df = load_file(dir[i], i, j, L, R, θ)
-            pn_m = Array{Float64}(undef, length(E_edges)-1, R[i])
+τ = similar(ipr_mean)
+τ_err = similar(ipr_mean)
+for i in 1:length(L)
+    τ[:, i] = log.(ipr_mean[:, i]) ./ log(0.1)
+    τ_err[:, i] = abs.(ipr_ste[:, i] ./ ipr_mean[:,i] ./ log(0.1))
+end
 
-            for r in 1:R[i]
-                idx = searchsorted(df.r, r)
-                E = df.E[idx]
-                pn = 1. ./ (df[idx, Symbol("2.0")])
-                pn_m[:, r] .= pn_mean_binned(E, pn, E_edges)
-            end
-            for k in 1:length(E_edges) - 1
-                pn_m_m[k, j, i] = mean(pn_m[k, :])
-                pn_m_std[k, j, i] = std(pn_m[k, :])
-            end
+plot(θ, τ, yerror = τ_err, label = "L = ".*string.(L), legend = :bottomright)
+
+## model functions
+shift_norm(x, x_c) = (x - x_c)/x_c
+
+function series_1(x, a; start_zero = false)
+    u = 0.
+    if start_zero
+        for j in 0:length(a)-1
+            u += a[j + 1]*x^j
+        end
+    else
+        for j in 1:length(a)
+            u += a[j]*x^j
         end
     end
-    return pn_m_m, pn_m_std
-end
-# 0.6 < E < 1.4 (slightly smaller than (1-W/2) and (1 + W/2). The midband is E = 1.
-## ROAG for the midband: scaling of ROAG.
-pn_m_m, pn_m_std = pn_scan(dir = dir, L = L, R = R , θ = θ, E_edges = E_edges)
-
-pn_exp_fit = Array{Float64}(undef, length(E_edges)-1, length(θ))
-for i = 1:length(E_edges)-1, j = 1:length(θ)
-    X = [ones(length(L)) log.(vec(L))]
-    Y = pn_m_m[i,j,:]
-    v = X\Y
-    pn_exp_fit[i,j] = v[2]
+    return u
 end
 
-pn_exp_diff = Array{Float64}(undef, length(E_edges)-1, length(θ), length(L)-1)
-for i = 1:length(E_edges)-1, j = 1:length(θ)
-    dx = diff(log.(vec(L)))
-    dy = diff(pn_m_m[i,j,:])
-    pn_exp_diff[i,j,:] = dy./dx
+
+function series_2(r::Tuple{Real, Real}, a::Vector{Float64},  n, m)
+    u = 0.
+    A = reshape(a, n, m)
+    for i in 0:size(A, 1)-1, j in 0:size(A, 2)-1
+        u += (A[i + 1, j + 1]*getindex(r, 1)^i*getindex(r, 2)^j)
+    end
+    return u
 end
 
-matwrite(savedir*"pn_log.mat",
-    Dict("pn_m_m" => pn_m_m,
-    "pn_m_std" => pn_m_std,
-    "pn_exp_fit" => pn_exp_fit,
-    "pn_exp_diff" => pn_exp_diff))
+function model(x, p)
+    th = shift_norm.(x[:, 1], p[1])
+    u_1 = series_1.(th, Ref([1, p[11], 0.]), start_zero = false)
+    u_2 = series_1.(th, Ref([1, 0., 0.]), start_zero = true)
+    ϕ_1 = @. u_1*x[:, 2]^p[2]
+    ϕ_2 = @. u_2*x[:, 2]^p[3]
+    F = series_2.(zip(ϕ_1, ϕ_2),  Ref([p[4], p[5], p[6], p[7], p[8], p[9], 0., 0., p[10], 0., 0., 0.,0., 0., 0., 0.]), 8, 2)
+    return F
+end
+
+
+## Reshape data
+L_vec = repeat(vec(L), inner = length(θ))
+θ_vec = repeat(θ, outer = length(L))
+ydata = collect(reshape(τ, length(τ)))
+ywt = 1 ./ collect(reshape(τ_err, length(τ_err))).^2
+xdata = hcat(θ_vec, L_vec)
+## Parameters
+θ_c_guess = 0.1
+ν_guess = 1.6
+τ_c_guess = 1.5
+slope_guess = 0.5
+
+θ_c_ran = [0.095 0.105]
+ν_ran = [1.5 1.7]
+τ_c_ran = [1. 2.]
+slope_ran = [0. 10.]
+p = [θ_c_guess, 1/ν_guess, -2., τ_c_guess, slope_guess, 0., 0., 0., 0., 0., 0., 0.,0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]
+lb = [θ_c_ran[1], 1/ν_ran[2], -5., τ_c_ran[1], slope_ran[1], -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf] # Lower bound for params
+ub = [θ_c_ran[2], 1/ν_ran[1], 0, τ_c_ran[2], slope_ran[2], Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf, Inf] # Upper bound for params
+p = p[1:11]
+lb = lb[1:11]
+ub = ub[1:11]
+
+##
+length(p)
+y_fit = model(xdata, p)
+y_fit = reshape(y_fit, length(θ), length(L))
+scatter(θ, τ, ms = 3)
+plot!(θ, y_fit, c = :red)
+
+fit = curve_fit(model, xdata, vec(ydata), ywt, p, lower = lb, upper = ub)
+se = margin_error(fit)
+
+fit = curve_fit(model, xdata, vec(ydata), ywt, fit.param, lower = lb, upper = ub)
+se = margin_error(fit)
+
+
+y_fit = model(xdata, fit.param)
+y_fit = reshape(y_fit, length(θ), length(L))
+
+θ_norm = shift_norm.(xdata[:, 1], fit.param[1])
+u_1 = series_1.(θ_norm, Ref([1, fit.param[11], 0.]), start_zero = false)
+u_2 = series_1.(θ_norm, Ref([1]), start_zero = true)
+ϕ_1 = @. u_1*xdata[:, 2]^fit.param[2]
+ϕ_2 = @. u_2*xdata[:, 2]^fit.param[3]
+correction = reshape(fit.param[10]*ϕ_2, length(θ), length(L))
+y_corrected = y_fit .- correction
+ydata_corrected = τ .- correction
+
+u_1_reshape = reshape(u_1, length(θ), length(L))
+xi = abs.(u_1_reshape).^(-1. /fit.param[2])
+
+
+plt = plot(legend = :bottomright)
+for i in 1:length(L)
+    if i == 1
+        plot!(plt, θ, y_corrected[:, i], c = :black, line = :dot, label = "Fitting")
+    else
+        plot!(plt, θ, y_corrected[:, i], c = :black, line = :dot, label = :none)
+    end
+    scatter!(plt, θ, ydata_corrected[:, i], ms = 3, c = i, msw = -0.1, label = "L = $(L[i])")
+end
+ylabel!(L"\tau_{corrected}")
+xlabel!(L"\theta")
+display(plt)
+
+
+
+plt_1 = plot( legend = :bottomright)
+for i in 1:length(L)
+    if i == 1
+        plot!(plt_1, θ, y_fit[:, i], c = :black, line = :dot, label = "fitting")
+    else
+        plot!(plt_1, θ, y_fit[:, i], c = :black, line = :dot, label = :none)
+    end
+    scatter!(plt_1, θ, τ[:, i], ms = 3, c = i, msw = -0.1, label = "L = $(L[i])")
+end
+ylabel!(L"\tau")
+xlabel!(L"\theta")
+display(plt_1)
+
+
+xi_L = similar(xi)
+for i in 1:length(L)
+    xi_L[:, i] = xi[:, i]./ L[i]
+end
+
+plt_2 = plot(log10.(xi_L), y_corrected)
+scatter!(log10.(xi_L), ydata_corrected, legend = false)
+ylabel!(L"\tau")
+xlabel!(L"\log_{10} (\xi/L)")
+
+plt_3 = scatter(θ, log10.(xi), label = "L = ".* string.(L))
+xlabel!(L"\theta")
+ylabel!(L"\log_{10} \xi")
+
+
+savefig(plt, savedir*"tau.pdf")
+savefig(plt_1, savedir*"tau_cor.pdf")
+savefig(plt_2, savedir*"xi.pdf")
+savefig(plt_3, savedir*"scaling_function.pdf")
