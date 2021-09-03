@@ -9,7 +9,11 @@ using Lattice
 using PN
 function construct_linear_map(A)
     F = factorize(A)
-    LinearMap{eltype(A)}((y, x) -> ldiv!(y, F, x), size(A, 1), ismutating = true)
+    LinearMap{eltype(A)}((y, x) -> ldiv2!(y, F, x), size(A, 1), ismutating = true)
+end
+
+function ldiv2!(y, F, x)
+    y .= F\x
 end
 
 function phase_dis(H; V = 1., rng = nothing)
@@ -93,9 +97,9 @@ function abf3d_scan(p::Params)
             @time while size(df, 1) <= p.R
                 # Add disorder & detangle & project
                 D = phase_dis(H, rng = rng) .+ p.W[jj]*Diagonal(rand(rng, size(H,1)) .- 0.5)
-                H_prj = project(U'*D*U)
+                @views H_prj = project(U'*D*U)
                 droptol!(H_prj, 1E-12)
-                e_inv, psi, info = eigsolve(construct_linear_map(H_prj - p.E_c[jjj]*I(size(H_prj, 1))), size(H_prj, 1), div(p.L^2, 400), :LM, issymmetric = true, krylovdim = max(30, 2*div(p.L^2, 400)+1));
+                e_inv, psi, info = eigsolve(construct_linear_map(Hermitian(H_prj .- p.E_c[jjj]*I(size(H_prj, 1)))), size(H_prj, 1), div(p.L^2, 400), :LM, ishermitian = true, krylovdim = max(30, 2*div(p.L^2, 400)+1));
                 e = 1 ./ real.(e_inv) .+ p.E_c[jjj]
                 psi = reduce(hcat, psi)
                 idx = findall(x -> (p.E_c[jjj] - p.E_del) < x && x < (p.E_c[jjj] + p.E_del), e)
