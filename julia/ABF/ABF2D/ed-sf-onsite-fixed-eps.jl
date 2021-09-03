@@ -7,6 +7,7 @@ using ArgParse, JSON
 using ABF
 using Lattice
 using PN
+LinearAlgebra.BLAS.set_num_threads(Threads.nthreads())
 function construct_linear_map(A)
     F = factorize(A)
     LinearMap{eltype(A)}((y, x) -> ldiv2!(y, F, x), size(A, 1), ismutating = true)
