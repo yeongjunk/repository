@@ -100,8 +100,8 @@ function abf3d_scan(p::Params)
                 D = phase_dis(H, rng = rng) .+ p.W[jj]*Diagonal(rand(rng, size(H,1)) .- 0.5)
                 @views H_prj = project(U'*D*U)
                 droptol!(H_prj, 1E-12)
-                e_inv, psi, info = eigsolve(construct_linear_map(Hermitian(H_prj .- p.E_c[jjj]*I(size(H_prj, 1)))), size(H_prj, 1), div(p.L^2, 400), :LM, ishermitian = true, krylovdim = max(30, 2*div(p.L^2, 400)+1));
-                e = 1 ./ real.(e_inv) .+ p.E_c[jjj]
+                e_inv, psi, info = eigsolve(construct_linear_map(500. * Hermitian(H_prj .- p.E_c[jjj]*I(size(H_prj, 1)))), size(H_prj, 1), div(p.L^2, 400), :LM, ishermitian = true, krylovdim = max(30, 2*div(p.L^2, 400)+1));
+                e = 1 ./ (500. * real.(e_inv)) .+ p.E_c[jjj]
                 psi = reduce(hcat, psi)
                 idx = findall(x -> (p.E_c[jjj] - p.E_del) < x && x < (p.E_c[jjj] + p.E_del), e)
                 @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 12), r = fill(r, length(idx)))

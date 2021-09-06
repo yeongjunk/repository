@@ -11,12 +11,16 @@ using LaTeXStrings
 
 ##
 L = [100 150 200 250 300 400 500]
-rdir = "/Users/pcs/data/ABF2D/pd-fixed-eps/W01"
+rdir = "/Users/pcs/data/ABF2D/pd-fixed-eps/W01/"
 dir = [rdir*"L$(L[i])/" for i in 1:length(L)]
 
-for i in 1:7
-    for j in 1:3
-        mv(dir[6])
+# k = 7
+# for i in 2:7
+#     init = (i-1)*3
+#     for j in 1:3
+#         mv(dir[k]*"$(i)/L$(L[k])_Th1_W1_E$(j).csv", dir[k]*"$(i)/L$(L[k])_Th1_W1_E$(init + j).csv")
+#     end
+# end
 
 E_c = range(0., 0.3, length = 21)
 θ = 0.25
