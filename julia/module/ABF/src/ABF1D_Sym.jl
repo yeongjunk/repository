@@ -4,8 +4,8 @@ using SparseArrays
 export ham_fd, LUT, redef1, project, U_fe, ham_fe
 
 function ham_fd(ltc::Lattice1D, Ea::Real, Eb::Real)
-    @assert ltc.U == 2
-    return spdiagm(0 => repeat([Float64(Ea), Float64(Eb)], ltc.N))
+    @assert ltc.U == 4
+    return spdiagm(0 => repeat([Float64(Ea), Float64(Eb), Float64(Ea), Float64(Eb)], ltc.N))
 end
 
 function LUT(ltc::Lattice1D, θ::Real)
@@ -14,6 +14,7 @@ function LUT(ltc::Lattice1D, θ::Real)
     sin_θ = sinpi(θ)
     I = Int64[]; J = Int64[]; V = Float64[]
     for n in 1:ltc.N
+        #Spin downs
         push!(I, index(ltc, (n, 1)))
         push!(J, index(ltc, (n, 1)))
         push!(V, cos_θ)
@@ -28,6 +29,22 @@ function LUT(ltc::Lattice1D, θ::Real)
 
         push!(I, index(ltc, (n, 2)))
         push!(J, index(ltc, (n, 2)))
+        push!(V, cos_θ)
+        #Spin ups
+        push!(I, index(ltc, (n, 3)))
+        push!(J, index(ltc, (n, 3)))
+        push!(V, cos_θ)
+
+        push!(I, index(ltc, (n, 4)))
+        push!(J, index(ltc, (n, 3)))
+        push!(V, -sin_θ)
+
+        push!(I, index(ltc, (n, 3)))
+        push!(J, index(ltc, (n, 4)))
+        push!(V, sin_θ)
+
+        push!(I, index(ltc, (n, 4)))
+        push!(J, index(ltc, (n, 4)))
         push!(V, cos_θ)
     end
     return sparse(I, J, V, num_sites, num_sites)

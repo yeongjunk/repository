@@ -10,19 +10,19 @@ using LaTeXStrings
 
 
 ##
-L = [100 150 200 250 300 400 500]
-rdir = "/Users/pcs/data/ABF2D/pd-fixed-eps/W01/"
+L = [100 200 300 400 500 600]
+rdir = "/Users/pcs/data/ABF2D/pd-fixed-eps/"
 dir = [rdir*"L$(L[i])/" for i in 1:length(L)]
 
-# k = 7
-# for i in 2:7
-#     init = (i-1)*3
-#     for j in 1:3
-#         mv(dir[k]*"$(i)/L$(L[k])_Th1_W1_E$(j).csv", dir[k]*"$(i)/L$(L[k])_Th1_W1_E$(init + j).csv")
-#     end
-# end
+k = 6
+for i in 2:7
+    init = (i-1)*3
+    for j in 1:3
+        mv(dir[k]*"$(i)/L$(L[k])_Th1_W1_E$(j).csv", dir[k]*"$(i)/L$(L[k])_Th1_W1_E$(init + j).csv")
+    end
+end
 
-E_c = range(0., 0.3, length = 21)
+E_c = range(0., 0.3, length = 21)   join
 θ = 0.25
 
 savedir = "/Users/pcs/data/ABF2D/analyzed-data/"

@@ -4,8 +4,8 @@ using SparseArrays
 export ham_fd, LUT, redef1, project, U_fe, ham_fe
 
 function ham_fd(ltc::Lattice1D, Ea::Real, Eb::Real)
-    @assert ltc.U == 2
-    return spdiagm(0 => repeat([Float64(Ea), Float64(Eb)], ltc.N))
+    @assert ltc.U == 4
+    return spdiagm(0 => repeat([Float64(Ea), Float64(Eb), Float64(Ea), Float64(Eb)], ltc.N))
 end
 
 function LUT(ltc::Lattice1D, θ::Real)
@@ -14,6 +14,7 @@ function LUT(ltc::Lattice1D, θ::Real)
     sin_θ = sinpi(θ)
     I = Int64[]; J = Int64[]; V = Float64[]
     for n in 1:ltc.N
+        #Spin downs
         push!(I, index(ltc, (n, 1)))
         push!(J, index(ltc, (n, 1)))
         push!(V, cos_θ)
@@ -29,36 +30,22 @@ function LUT(ltc::Lattice1D, θ::Real)
         push!(I, index(ltc, (n, 2)))
         push!(J, index(ltc, (n, 2)))
         push!(V, cos_θ)
-    end
-    return sparse(I, J, V, num_sites, num_sites)
-end
+        #Spin ups
+        push!(I, index(ltc, (n, 3)))
+        push!(J, index(ltc, (n, 3)))
+        push!(V, cos_θ)
 
-function LUT(ltc::Lattice1D, θ::Real, ϕ1::Real, ϕ2::Real)
-    num_sites = ltc.N*ltc.U
-    cos_θ = cospi(θ)
-    sin_θ = sinpi(θ)
-    exp_phi1 = exp(im*ϕ1)
-    exp_phi2 = exp(im*ϕ2)
-    exp_phi1m = 1/exp_phi1
-    exp_phi2m = 1/exp_phi2
+        push!(I, index(ltc, (n, 4)))
+        push!(J, index(ltc, (n, 3)))
+        push!(V, -sin_θ)
 
-    I = Int64[]; J = Int64[]; V = ComplexF64[]
-    for n in 1:ltc.N
-        push!(I, index(ltc, (n, 1)))
-        push!(J, index(ltc, (n, 1)))
-        push!(V, exp_phi1*cos_θ)
+        push!(I, index(ltc, (n, 3)))
+        push!(J, index(ltc, (n, 4)))
+        push!(V, sin_θ)
 
-        push!(I, index(ltc, (n, 2)))
-        push!(J, index(ltc, (n, 1)))
-        push!(V, -exp_phi2*sin_θ)
-
-        push!(I, index(ltc, (n, 1)))
-        push!(J, index(ltc, (n, 2)))
-        push!(V, exp_phi2m*sin_θ)
-
-        push!(I, index(ltc, (n, 2)))
-        push!(J, index(ltc, (n, 2)))
-        push!(V, exp_phi1m*cos_θ)
+        push!(I, index(ltc, (n, 4)))
+        push!(J, index(ltc, (n, 4)))
+        push!(V, cos_θ)
     end
     return sparse(I, J, V, num_sites, num_sites)
 end
@@ -67,12 +54,22 @@ function redef1(ltc::Lattice1D)
     num_sites = ltc.N*ltc.U
     I = Int64[]; J = Int64[]; V = Float64[]
     for n in 1:ltc.N
+        #spin downs
         push!(I, index(ltc, (n, 1)))
         push!(J, index(ltc, (n, 1)))
         push!(V, 1)
 
         push!(I, index(ltc, (n, 2)))
         push!(J, index(ltc, (n + 1, 2)))
+        push!(V, 1)
+
+        #spin ups
+        push!(I, index(ltc, (n, 3)))
+        push!(J, index(ltc, (n, 3)))
+        push!(V, 1)
+
+        push!(I, index(ltc, (n, 4)))
+        push!(J, index(ltc, (n + 1, 4)))
         push!(V, 1)
     end
     return sparse(I, J, V, num_sites, num_sites)
@@ -86,13 +83,6 @@ end
 
 function ham_fe(ltc::Lattice1D, Ea::Real, Eb::Real, θ::Real)
     U = U_fe(ltc, θ)
-    H_fd = ham_fd(ltc, Ea, Eb)
-    H_fe = U*H_fd*U'
-    return H_fe, U
-end
-
-function ham_fe(ltc::Lattice1D, Ea::Real, Eb::Real, θ::Real, ϕ1::Real, ϕ2::Real)
-    U = U_fe(ltc, θ, ϕ1, ϕ2)
     H_fd = ham_fd(ltc, Ea, Eb)
     H_fe = U*H_fd*U'
     return H_fe, U
