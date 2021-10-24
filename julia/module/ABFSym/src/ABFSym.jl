@@ -5,7 +5,7 @@ module ABFSym
     using SparseArrays
 
     include("ABF1D_Sym.jl")
-    include("ABF2D.jl")
+    include("ABF2D_Sym.jl")
     include("ABF3D.jl")
 
     function project!(H_p::AbstractArray,H::AbstractArray)
@@ -13,9 +13,17 @@ module ABFSym
     end
 
     function project(H::AbstractArray)
-        H_p = H[2:2:end, 2:2:end]
+        N = size(H, 1)÷4
+        ind = Int64[]
+        for i in 1:N
+            push!(ind, 4(i-1) + 2)
+            push!(ind, 4(i-1) + 4)
+        end
+        H_p = H[ind, ind]
         return H_p
     end
+
+
 
     export project!, project, Lattice
 end

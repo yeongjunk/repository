@@ -6,10 +6,20 @@ using Glob
 using Plots
 using LsqFit
 using LaTeXStrings
+
+
 ##
-L = [20 30 40 50]
+L = [20 30 40 50 60]
 rdir = "/Users/pcs/data/ABF-sum/3d-sf-on-pn-roag/par-ipr-fix-eps/"
 dir = [rdir*"L$(L[i])/" for i in 1:length(L)]
+
+# k = 5
+# for i in 2:7
+#     init = (i-1)*3
+#     for j in 1:3
+#         mv(dir[k]*"$(i)/L$(L[k])_Th$(j).csv", dir[k]*"$(i)/L$(L[k])_Th$(init + j).csv")
+#     end
+# end
 
 
 θ = range(0.08, 0.12, length = 21)
@@ -108,8 +118,25 @@ plot!(θ, y_fit, c = :red)
 fit = curve_fit(model, xdata, vec(ydata), ywt, p, lower = lb, upper = ub)
 se = margin_error(fit)
 
-fit = curve_fit(model, xdata, vec(ydata), ywt, fit.param, lower = lb, upper = ub)
-se = margin_error(fit)
+# fit = curve_fit(model, xdata, vec(ydata), ywt, fit.param, lower = lb, upper = ub)
+# se = margin_error(fit)
+marker = (:circle, 4, 1., stroke(-0.5, 1., :black))
+line = (:line, :solid, 2)
+palette = :Dark2_5
+
+default(
+    framestyle = :box,
+    # right_margin = [3mm 0mm],
+    grid = false,
+    minorticks = true,
+    size = (600, 400),
+    legend = (0.1, 0.75),
+    fontfamily = "computer modern",
+    tickfontsize = 10,
+    guidefontsize = 10,
+    legendfontsize = 10,
+    palette = :Dark2_5
+    )
 
 
 y_fit = model(xdata, fit.param)
@@ -135,25 +162,28 @@ for i in 1:length(L)
     else
         plot!(plt, θ, y_corrected[:, i], c = :black, line = :dot, label = :none)
     end
-    scatter!(plt, θ, ydata_corrected[:, i], ms = 3, c = i, msw = -0.1, label = "L = $(L[i])")
+    scatter!(plt, θ, ydata_corrected[:, i], marker = marker, ms = 2, label = "L = $(L[i])")
+    plot!(plt, θ, ydata_corrected[:, i], label =:none, c = :transparent, yerror = τ_err)
+
 end
-ylabel!(L"\tau_{corrected}")
-xlabel!(L"\theta")
+ylabel!(L"\tilde{\tau}_{corrected}")
+xlabel!(L"\theta/\pi")
 display(plt)
 
 
 
-plt_1 = plot( legend = :bottomright)
+plt_1 = plot(legend = :bottomright)
 for i in 1:length(L)
     if i == 1
         plot!(plt_1, θ, y_fit[:, i], c = :black, line = :dot, label = "fitting")
     else
         plot!(plt_1, θ, y_fit[:, i], c = :black, line = :dot, label = :none)
     end
-    scatter!(plt_1, θ, τ[:, i], ms = 3, c = i, msw = -0.1, label = "L = $(L[i])")
+    scatter!(plt_1, θ, τ[:, i], marker = marker, label = "L = $(L[i])")
+    plot!(plt_1, θ, τ[:, i], label =:none, c = :transparent, yerror = τ_err)
 end
-ylabel!(L"\tau")
-xlabel!(L"\theta")
+ylabel!(L"\tilde{\tau}")
+xlabel!(L"\theta/\pi")
 display(plt_1)
 
 
@@ -162,14 +192,14 @@ for i in 1:length(L)
     xi_L[:, i] = xi[:, i]./ L[i]
 end
 
-plt_2 = plot(log10.(xi_L), y_corrected)
-scatter!(log10.(xi_L), ydata_corrected, legend = false)
-ylabel!(L"\tau")
-xlabel!(L"\log_{10} (\xi/L)")
+plt_2 = plot(inset = (1, bbox(0.04, 0.1, 0.35, 0.35, :bottom, :right)), legend = :topright)
+scatter!(plt_2, sp = 1, log10.(xi_L), y_corrected, label ="L = ".*string.(L), ,marker = marker, palette = :default)
+ylabel!(sp = 1, L"\tilde{\tau}_{corrected}")
+xlabel!(sp = 1, L"\log_{10} (\xi/L)")
 
-plt_3 = scatter(θ, log10.(xi), label = "L = ".* string.(L))
-xlabel!(L"\theta")
-ylabel!(L"\log_{10} \xi")
+plot!(plt_2, sp = 2, θ, log10.(xi)[:,2], legend = false)
+xlabel!(plt_2, sp = 2, L"\theta/\pi")
+ylabel!(plt_2, sp = 2, L"\log_{10} \xi")
 
 
 savefig(plt, savedir*"tau.pdf")
