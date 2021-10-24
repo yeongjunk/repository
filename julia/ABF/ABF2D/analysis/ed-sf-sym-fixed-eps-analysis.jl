@@ -7,9 +7,9 @@ using Plots
 using LsqFit
 using LaTeXStrings
 ##
-len_W = 10
+len_W = 20
 L = [40 50 60]
-rdir = "/Users/pcs/codes/project/julia/ABF/ABF2D/V2test/"
+rdir = "/Users/pcs/codes/project/julia/ABF/ABF2D/V2fine/"
 # dir = ["L$(L[i])_Th1_W$(j)_E1.csv" for i in 1:length(L), j in 1:len_W]
 dir = ["L$(L[i])_Th1_W1_E$(j).csv" for i in 1:length(L), j in 1:len_W]
 
