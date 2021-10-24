@@ -1,32 +1,39 @@
-written
-written
-written
-written
-ERROR: LoadError: ArgumentError: Sampler for this object is not defined
+ERROR: LoadError: UndefVarError: compute_iprs2 not defined
 Stacktrace:
- [1] Random.Sampler(#unused#::Type{MersenneTwister}, sp::Random.SamplerTrivial{Float64, Float64}, #unused#::Val{1})
-   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:145
- [2] Random.Sampler(rng::MersenneTwister, x::Random.SamplerTrivial{Float64, Float64}, r::Val{1})
-   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:139
- [3] rand(rng::MersenneTwister, X::Random.SamplerTrivial{Float64, Float64}) (repeats 2 times)
-   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:253
- [4] rand(X::Float64)
-   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:258
- [5] top-level scope
-   @ ~/codes/repository/julia/ABF/ABF2D/mf-2d-onsite.jl:119
-in expression starting at /home/yjkim/codes/repository/julia/ABF/ABF2D/mf-2d-onsite.jl:111
-ERROR: LoadError: ArgumentError: Sampler for this object is not defined
+ [1] compute_box_iprs(ltc::Lattice2D{Int64}, psi::SubArray{ComplexF64, 2, Matrix{ComplexF64}, Tuple{Base.Slice{Base.OneTo{Int64}}, Vector{Int64}}, false}, idx::Matrix{Int64}; q::Int64)
+   @ Main ~/codes/repository/julia/ABF/ABF2D/ed-sf-onsite-fixed-eps.jl:65
+ [2] macro expansion
+   @ ~/codes/repository/julia/ABF/ABF2D/ed-sf-onsite-fixed-eps.jl:108 [inlined]
+ [3] macro expansion
+   @ ./timing.jl:210 [inlined]
+ [4] abf3d_scan(p::Params)
+   @ Main ~/codes/repository/julia/ABF/ABF2D/ed-sf-onsite-fixed-eps.jl:98
+ [5] main(ARGS::Vector{String})
+   @ Main ~/codes/repository/julia/ABF/ABF2D/ed-sf-onsite-fixed-eps.jl:135
+ [6] top-level scope
+   @ ~/codes/repository/julia/ABF/ABF2D/ed-sf-onsite-fixed-eps.jl:138
+in expression starting at /home/yjkim/codes/repository/julia/ABF/ABF2D/ed-sf-onsite-fixed-eps.jl:138
+ERROR: LoadError: UndefVarError: compute_iprs2 not defined
 Stacktrace:
- [1] Random.Sampler(#unused#::Type{MersenneTwister}, sp::Random.SamplerTrivial{Float64, Float64}, #unused#::Val{1})
-   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:145
- [2] Random.Sampler(rng::MersenneTwister, x::Random.SamplerTrivial{Float64, Float64}, r::Val{1})
-   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:139
- [3] rand(rng::MersenneTwister, X::Random.SamplerTrivial{Float64, Float64}) (repeats 2 times)
-   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:253
- [4] rand(X::Float64)
-   @ Random /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/Random/src/Random.jl:258
- [5] top-level scope
-   @ ~/codes/repository/julia/ABF/ABF2D/mf-2d-onsite.jl:118
-in expression starting at /home/yjkim/codes/repository/julia/ABF/ABF2D/mf-2d-onsite.jl:111
-written
-written
+ [1] compute_box_iprs(ltc::Lattice2D{Int64}, psi::SubArray{ComplexF64, 2, Matrix{ComplexF64}, Tuple{Base.Slice{Base.OneTo{Int64}}, Vector{Int64}}, false}, idx::Matrix{Int64}; q::Int64)
+   @ Main ~/codes/repository/julia/ABF/ABF2D/ed-sf-onsite-fixed-eps.jl:65
+ [2] macro expansion
+   @ ~/codes/repository/julia/ABF/ABF2D/ed-sf-onsite-fixed-eps.jl:108 [inlined]
+ [3] macro expansion
+   @ ./timing.jl:210 [inlined]
+ [4] abf3d_scan(p::Params)
+   @ Main ~/codes/repository/julia/ABF/ABF2D/ed-sf-onsite-fixed-eps.jl:98
+ [5] main(ARGS::Vector{String})
+   @ Main ~/codes/repository/julia/ABF/ABF2D/ed-sf-onsite-fixed-eps.jl:135
+ [6] top-level scope
+   @ ~/codes/repository/julia/ABF/ABF2D/ed-sf-onsite-fixed-eps.jl:138
+in expression starting at /home/yjkim/codes/repository/julia/ABF/ABF2D/ed-sf-onsite-fixed-eps.jl:138
+  6.208095 seconds (2.70 M allocations: 1.657 GiB, 4.78% gc time, 23.17% compilation time)
+  4.469830 seconds (9.38 k allocations: 1.504 GiB, 0.78% gc time)
+ERROR: julia: -t,--threads=<n> must be an integer >= 1
+ 46.320156 seconds (2.68 M allocations: 4.117 GiB, 1.07% gc time, 3.18% compilation time)
+ 44.240384 seconds (20.49 k allocations: 3.963 GiB, 0.56% gc time, 0.03% compilation time)
+ 58.834146 seconds (2.68 M allocations: 4.117 GiB, 0.75% gc time, 2.36% compilation time)
+ 56.993744 seconds (20.49 k allocations: 3.963 GiB, 0.34% gc time, 0.02% compilation time)
+ 51.156031 seconds (2.68 M allocations: 4.117 GiB, 0.83% gc time, 2.72% compilation time)
+ 53.117594 seconds (20.49 k allocations: 3.963 GiB, 0.48% gc time, 0.03% compilation time)
