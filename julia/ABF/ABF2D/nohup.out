@@ -37,3 +37,93 @@ ERROR: julia: -t,--threads=<n> must be an integer >= 1
  56.993744 seconds (20.49 k allocations: 3.963 GiB, 0.34% gc time, 0.02% compilation time)
  51.156031 seconds (2.68 M allocations: 4.117 GiB, 0.83% gc time, 2.72% compilation time)
  53.117594 seconds (20.49 k allocations: 3.963 GiB, 0.48% gc time, 0.03% compilation time)
+
+signal (15): Terminated
+in expression starting at /home/yjkim/codes/repository/julia/ABF/ABF2D/ed-sf-sym-fixed-eps.jl:27
+c_cholmod_rowfac at /home/yjkim/julia-1.6.2/bin/../lib/julia/libcholmod.so (unknown line)
+cholmod_l_rowfac_mask2 at /home/yjkim/julia-1.6.2/bin/../lib/julia/libcholmod.so (unknown line)
+cholmod_l_rowfac at /home/yjkim/julia-1.6.2/bin/../lib/julia/libcholmod.so (unknown line)
+cholmod_l_factorize_p at /home/yjkim/julia-1.6.2/bin/../lib/julia/libcholmod.so (unknown line)
+factorize_p! at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/SuiteSparse/src/cholmod.jl:742
+#ldlt!#10 at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/SuiteSparse/src/cholmod.jl:1470
+ldlt!##kw at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/SuiteSparse/src/cholmod.jl:1463 [inlined]
+#ldlt!#11 at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/SuiteSparse/src/cholmod.jl:1497 [inlined]
+ldlt! at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/SuiteSparse/src/cholmod.jl:1497 [inlined]
+factorize at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.6/SparseArrays/src/linalg.jl:1634
+construct_linear_map at /home/yjkim/codes/repository/julia/ABF/ABF2D/ed-sf-sym-fixed-eps-func.jl:14 [inlined]
+macro expansion at /home/yjkim/codes/repository/julia/ABF/ABF2D/ed-sf-sym-fixed-eps-func.jl:153 [inlined]
+macro expansion at ./timing.jl:210 [inlined]
+abf3d_scan at /home/yjkim/codes/repository/julia/ABF/ABF2D/ed-sf-sym-fixed-eps-func.jl:147
+main at /home/yjkim/codes/repository/julia/ABF/ABF2D/ed-sf-sym-fixed-eps.jl:24
+_jl_invoke at /buildworker/worker/package_linux64/build/src/gf.c:2237 [inlined]
+jl_apply_generic at /buildworker/worker/package_linux64/build/src/gf.c:2419
+jl_apply at /buildworker/worker/package_linux64/build/src/julia.h:1703 [inlined]
+do_call at /buildworker/worker/package_linux64/build/src/interpreter.c:115
+eval_value at /buildworker/worker/package_linux64/build/src/interpreter.c:204
+eval_stmt_value at /buildworker/worker/package_linux64/build/src/interpreter.c:155 [inlined]
+eval_body at /buildworker/worker/package_linux64/build/src/interpreter.c:562
+jl_interpret_toplevel_thunk at /buildworker/worker/package_linux64/build/src/interpreter.c:670
+jl_toplevel_eval_flex at /buildworker/worker/package_linux64/build/src/toplevel.c:877
+jl_toplevel_eval_flex at /buildworker/worker/package_linux64/build/src/toplevel.c:825
+jl_toplevel_eval_in at /buildworker/worker/package_linux64/build/src/toplevel.c:929
+eval at ./boot.jl:360 [inlined]
+include_string at ./loading.jl:1116
+_jl_invoke at /buildworker/worker/package_linux64/build/src/gf.c:2237 [inlined]
+jl_apply_generic at /buildworker/worker/package_linux64/build/src/gf.c:2419
+_include at ./loading.jl:1170
+include at ./Base.jl:386
+_jl_invoke at /buildworker/worker/package_linux64/build/src/gf.c:2237 [inlined]
+jl_apply_generic at /buildworker/worker/package_linux64/build/src/gf.c:2419
+exec_options at ./client.jl:285
+_start at ./client.jl:485
+jfptr__start_34281.clone_1 at /home/yjkim/julia-1.6.2/lib/julia/sys.so (unknown line)
+_jl_invoke at /buildworker/worker/package_linux64/build/src/gf.c:2237 [inlined]
+jl_apply_generic at /buildworker/worker/package_linux64/build/src/gf.c:2419
+jl_apply at /buildworker/worker/package_linux64/build/src/julia.h:1703 [inlined]
+true_main at /buildworker/worker/package_linux64/build/src/jlapi.c:560
+repl_entrypoint at /buildworker/worker/package_linux64/build/src/jlapi.c:702
+main at /buildworker/worker/package_linux64/build/cli/loader_exe.c:51
+__libc_start_main at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+_start at /home/yjkim/julia-1.6.2/bin/julia (unknown line)
+unknown function (ip: (nil))
+Allocations: 34984377 (Pool: 34975229; Big: 9148); GC: 38
+213.922418 seconds (27.93 M allocations: 17.919 GiB, 0.43% gc time, 0.69% compilation time)
+214.707432 seconds (25.13 M allocations: 17.758 GiB, 0.14% gc time)
+213.607865 seconds (25.13 M allocations: 17.758 GiB, 0.11% gc time)
+217.247185 seconds (25.13 M allocations: 17.758 GiB, 0.12% gc time)
+214.646266 seconds (25.13 M allocations: 17.758 GiB, 0.12% gc time)
+216.031650 seconds (25.13 M allocations: 17.758 GiB, 0.12% gc time)
+217.285253 seconds (25.13 M allocations: 17.758 GiB, 0.12% gc time)
+215.069883 seconds (25.13 M allocations: 17.758 GiB, 0.13% gc time)
+216.415775 seconds (25.13 M allocations: 17.758 GiB, 0.12% gc time)
+216.728754 seconds (25.13 M allocations: 17.758 GiB, 0.12% gc time)
+214.704767 seconds (25.13 M allocations: 17.758 GiB, 0.12% gc time)
+218.107889 seconds (25.13 M allocations: 17.758 GiB, 0.12% gc time)
+214.261212 seconds (25.13 M allocations: 17.758 GiB, 0.12% gc time)
+217.090289 seconds (25.13 M allocations: 17.758 GiB, 0.12% gc time)
+215.554756 seconds (25.13 M allocations: 17.758 GiB, 0.11% gc time)
+215.012951 seconds (25.13 M allocations: 17.758 GiB, 0.13% gc time)
+236.643750 seconds (27.41 M allocations: 19.373 GiB, 0.12% gc time)
+255.432946 seconds (29.69 M allocations: 20.987 GiB, 0.12% gc time)
+278.225897 seconds (31.98 M allocations: 22.662 GiB, 0.13% gc time)
+335.957016 seconds (38.83 M allocations: 27.444 GiB, 0.12% gc time)
+220.099608 seconds (27.93 M allocations: 17.919 GiB, 0.48% gc time, 0.69% compilation time)
+225.149660 seconds (25.13 M allocations: 17.758 GiB, 0.14% gc time)
+221.868489 seconds (25.13 M allocations: 17.758 GiB, 0.11% gc time)
+222.513700 seconds (25.13 M allocations: 17.758 GiB, 0.11% gc time)
+223.494607 seconds (25.13 M allocations: 17.758 GiB, 0.11% gc time)
+220.901777 seconds (25.13 M allocations: 17.758 GiB, 0.12% gc time)
+221.603728 seconds (25.13 M allocations: 17.758 GiB, 0.11% gc time)
+223.434489 seconds (25.13 M allocations: 17.758 GiB, 0.11% gc time)
+220.109984 seconds (25.13 M allocations: 17.758 GiB, 0.11% gc time)
+222.070381 seconds (25.13 M allocations: 17.758 GiB, 0.13% gc time)
+224.309756 seconds (25.13 M allocations: 17.758 GiB, 0.11% gc time)
+222.271173 seconds (25.13 M allocations: 17.758 GiB, 0.11% gc time)
+224.556989 seconds (25.13 M allocations: 17.758 GiB, 0.11% gc time)
+221.403051 seconds (25.13 M allocations: 17.758 GiB, 0.12% gc time)
+222.385539 seconds (25.13 M allocations: 17.758 GiB, 0.11% gc time)
+223.684785 seconds (25.13 M allocations: 17.758 GiB, 0.12% gc time)
+242.081420 seconds (27.41 M allocations: 19.373 GiB, 0.11% gc time)
+263.351254 seconds (29.69 M allocations: 20.987 GiB, 0.11% gc time)
+284.511026 seconds (31.98 M allocations: 22.601 GiB, 0.12% gc time)
+366.408587 seconds (41.12 M allocations: 29.180 GiB, 0.14% gc time)
