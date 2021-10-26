@@ -23,7 +23,7 @@ default(
     legendfontsize = 13, palette = :default)
 
 len_W = 20
-L = [40 50 60 100]
+L = [40 50 60]
 rdir = "/Users/pcs/codes/project/julia/ABF/ABF2D/V2fine/"
 savedir = "/Users/pcs/data/ABF-sum/2d-sf-sym-pn/"
 
