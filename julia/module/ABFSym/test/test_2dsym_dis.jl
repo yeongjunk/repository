@@ -5,6 +5,24 @@ using Plots
 using PN
 using Statistics
 using Random
+using LaTeXStrings
+savedir = "/Users/pcs/data/ABF-sum/2d-sf-sym-pn/"
+
+marker = (:circle, 4, 1., stroke(0.5, 1., :black))
+line = (:line, :solid, 2)
+palette_roag = :Dark2_5
+default(
+    framestyle = :box,
+    size = (600,400),
+    # right_margin = [3mm 0mm],
+    grid = false,
+    minorticks = true,
+    legend = (0.1, 0.75),
+    fontfamily = "computer modern",
+    tickfontsize = 13,
+    guidefontsize = 13,
+    legendfontsize = 13, palette = :default)
+
 
 function symplectic_coupling!(ltc, t, I, J, val, site1, site2, u, v, V)
     push!(I, index(ltc, (site1[1], site1[2], u)))
@@ -87,7 +105,7 @@ end
 ltc = Lattice2D(10, 10, 4)
 H, U = ham_fe(ltc, -2., 0., 0.25)
 H = convert.(ComplexF64, H)
-H2 = makesym2d(ltc, H, 1.,  0.5; rng = MersenneTwister())
+H2 = makesym2d(ltc, H, 1.,  0.01; rng = MersenneTwister(1))
 ishermitian(H2)
 heatmap(abs.(Matrix(H2)))
 # display(Matrix(H[1:4, 1:4]))
@@ -102,9 +120,73 @@ H_fd = Matrix(project(U'*H2*U))
 scatter(vals)
 heatmap(abs.(H_fd))
 
+
 vals2, vecs2 = eigen(Hermitian(H_fd))
-scatter(vals2, legend = false)
+p = scatter(vals2, legend = false, marker = marker)
+ylabel!(L"E")
+xlabel!("Index")
+savefig(p, savedir*"E_th0.25.pdf")
 
 scatter(abs.(vecs2[:, end÷2]))
 scatter(abs.(vecs2[2:2:end, end÷2]))
 scatter!(abs.(vecs2[1:2:end, end÷2]))
+
+
+##  bandwidth with, varying V2
+
+bw = Float64[]
+v = vec([0.01 0.03 0.1 0.3 1.])
+p = scatter(legendfontsize = 10, size = (600, 400), layout = (1, 2), legend = :topleft, palette = :tab10)
+for Vi in v
+    ltc = Lattice2D(15, 15, 4)
+    H, U = ham_fe(ltc, -2., 0., 0.25)
+    H = convert.(ComplexF64, H)
+    H2 = makesym2d(ltc, H, 1., Vi; rng = MersenneTwister(1))
+    H_fd = Matrix(project(U'*H2*U))
+    vals2, vecs2 = eigen(Hermitian(H_fd))
+    push!(bw, maximum(vals2))
+    scatter!(p, sp = 1,vals2, label = "V = $(string(Vi))", ms = 2, msw = 0.3)
+    scatter!(p, sp = 2, vals2/maximum(vals2), label = "V = $(string(Vi))", ms = 2, msw = 0.3)
+end
+xlabel!(p, "index")
+ylabel!(p, sp = 1, "E")
+ylabel!(p, sp = 2, "Normalized E")
+
+display(p)
+p1 = plot(v, 0.367v, label = "fit")
+p1 = scatter!(v, bw, label = "data")
+xlabel!(p1, "coupling strength V")
+ylabel!(p1, "Bandwidth")
+annotate!(p1, 0.6, 0.1, "slope = 0.367")
+diff(bw)./diff(v)
+savefig(p, savedir*"energy_spectrum.pdf")
+savefig(p1, savedir*"bandwidth.pdf")
+
+
+## Bandwidth, varying theta
+bw = Float64[]
+th = vec([0.01 0.02 0.03 0.04 0.06 0.08 0.10 0.15 0.20 0.25])
+p = scatter(legendfontsize = 10, size = (600, 400), layout = (1, 2), legend = :topleft, palette = :tab10)
+for thi in th
+    ltc = Lattice2D(15, 15, 4)
+    H, U = ham_fe(ltc, -2., 0., thi)
+    H = convert.(ComplexF64, H)
+    H2 = makesym2d(ltc, H, 1., 0.5; rng = MersenneTwister(2))
+    H_fd = Matrix(project(U'*H2*U))
+    vals2, vecs2 = eigen(Hermitian(H_fd))
+    push!(bw, maximum(vals2))
+    scatter!(p,sp = 1, vals2, label = L"\theta = %$(string(thi))", ms = 2, msw = 0.3)
+    scatter!(p,sp = 2, vals2/maximum(vals2), label = L"\theta = %$(string(thi))", ms = 2, msw = 0.3)
+end
+display(p)
+xlabel!(p, "index")
+ylabel!(p, sp = 1, "E")
+ylabel!(p, sp = 2, "Normalized E")
+
+# p1 = plot(v, 0.367v, label = "fit")
+p1 = scatter(th, bw, label = "data")
+xlabel!(p1, L"\theta/\pi")
+ylabel!(p1, "Bandwidth")
+
+savefig(p, savedir*"Energy_spectrum_func_of_th.pdf")
+savefig(p1, savedir*"bandwidth_func_of_th.pdf")
