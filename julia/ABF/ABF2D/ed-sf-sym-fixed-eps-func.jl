@@ -127,6 +127,19 @@ function makesym2d(ltc, H, V1, V2; rng = Random.GLOBAL_RNG)
     end
     return sparse(I, J, val, size(H, 1), size(H, 2))
 end
+
+function estimate_bw(p, θ, W)
+    ltc = Lattice2D(20, 20, 4)
+    ltc_p = Lattice2D(20, 20, 2)
+    rng = MersenneTwister()
+    H, U = ham_fe(ltc, -2, 0, θ) # Fully entangled hamiltonian
+    H = convert.(ComplexF64, H)
+    H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng)
+    D = W*Diagonal(rand(rng, size(H,1)) .- 0.5)
+    @views H_prj = project(U'*(H_dis + D)*U)
+    vals = eigvals!(Hermitian(Matrix(H_prj)))
+    return 2*maximum(vals)
+end
 function abf3d_scan(p::Params)
     q_str = "q".*string.(p.q)
     rng = MersenneTwister(p.seed)
@@ -141,29 +154,34 @@ function abf3d_scan(p::Params)
         for k in 1:length(p.q)
             insertcols!(df, q_str[k] => Float64[])
         end
-
-        for jj in 1:length(p.W), jjj in 1:length(p.E_c)
-            r = 1
-            @time while size(df, 1) <= p.R
-                # Add disorder & detangle & project
-                H_dis = makesym2d(ltc, H, p.V1, p.V2)
-                D = p.W[jj]*Diagonal(rand(rng, size(H,1)) .- 0.5)
-                @views H_prj = project(U'*(H_dis + D)*U)
-                droptol!(H_prj, 1E-12)
-                e_inv, psi = eigs(construct_linear_map(500. * Hermitian(H_prj .- p.E_c[jjj]*I(size(H_prj, 1)))), nev = div(p.L^2, 100), which = :LM);
-                e = 1 ./ (500. * real.(e_inv)) .+ p.E_c[jjj]
-                idx = findall(x -> (p.E_c[jjj] - p.E_del) < x && x < (p.E_c[jjj] + p.E_del), e)
-                @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 12), r = fill(r, length(idx)))
-                for k in 1:length(p.q)
-                    @views insertcols!(df_temp, q_str[k] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx, q = p.q[k]), sigdigits = 12))
+        for jj in 1:length(p.W)
+            BW = estimate_bw(p, p.θ[j], p.W[jj])
+            println("Bandwidth estimated: $(BW)")
+            E_c = range(0.0001, BW/2*0.95, length = length(p.E_c))
+            E_del = (E_c[2] - E_c[1])/8
+            for jjj in 1:length(E_c)
+                r = 1
+                @time while size(df, 1) <= p.R
+                    # Add disorder & detangle & project
+                    H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng)
+                    D = p.W[jj]*Diagonal(rand(rng, size(H,1)) .- 0.5)
+                    @views H_prj = project(U'*(H_dis + D)*U)
+                    droptol!(H_prj, 1E-12)
+                    e_inv, psi = eigs(construct_linear_map(500. * Hermitian(H_prj .- E_c[jjj]*I(size(H_prj, 1)))), nev = div(p.L^2, 100), which = :LM);
+                    e = 1 ./ (500. * real.(e_inv)) .+ E_c[jjj]
+                    idx = findall(x -> (E_c[jjj] - E_del) < x && x < (E_c[jjj] + E_del), e)
+                    @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 12), r = fill(r, length(idx)))
+                    for k in 1:length(p.q)
+                        @views insertcols!(df_temp, q_str[k] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx, q = p.q[k]), sigdigits = 12))
+                    end
+                    append!(df, df_temp)
+                    r += 1
                 end
-                append!(df, df_temp)
-                r += 1
-            end
-            CSV.write(fn*"_W$(jj)_E$(jjj).csv", df)
-            df = DataFrame(E = Float64[], r = Int64[])
-            for k in 1:length(p.q)
-                insertcols!(df, q_str[k] => Float64[])
+                CSV.write(fn*"_W$(jj)_E$(jjj).csv", df)
+                df = DataFrame(E = Float64[], r = Int64[])
+                for k in 1:length(p.q)
+                    insertcols!(df, q_str[k] => Float64[])
+                end
             end
         end
     end
