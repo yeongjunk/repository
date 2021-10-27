@@ -172,7 +172,7 @@ function abf3d_scan(p::Params)
                     D = p.W[jj]*Diagonal(rand(rng, size(H,1)) .- 0.5)
                     @views H_prj = project(U'*(H_dis + D)*U)
                     droptol!(H_prj, 1E-12)
-                    decomp, = partialschur(construct_linear_map(500. * Hermitian(H_prj .- E_c[jjj]*I(size(H_prj, 1)))), nev = div(p.L^2, 100), tol=1e-5, restarts=100, which = LM())
+                    decomp, = partialschur(construct_linear_map(500. * Hermitian(H_prj .- E_c[jjj]*I(size(H_prj, 1)))), nev = div(p.L^2, 100), tol=1e-6, restarts=100, which = LM())
                     e_inv, psi = partialeigen(decomp)
                     e = 1 ./ (500. * real.(e_inv)) .+ E_c[jjj]
                     idx = findall(x -> (E_c[jjj] - E_del) < x && x < (E_c[jjj] + E_del), e)
