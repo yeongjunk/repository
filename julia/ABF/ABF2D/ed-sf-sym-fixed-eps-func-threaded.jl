@@ -1,4 +1,5 @@
-using LinearAlgebra, SparseArrays, Arpack
+
+using LinearAlgebra, SparseArrays, ArnoldiMethod
 using LinearMaps
 using Random
 using DataFrames, CSV
@@ -7,7 +8,8 @@ using ArgParse, JSON
 using ABFSym
 using Lattice
 using PN
-LinearAlgebra.BLAS.set_num_threads(Threads.nthreads())
+
+LinearAlgebra.BLAS.set_num_threads(1)
 include("./ed-sf-sym-fixed-eps-params.jl") # read parameters from configuration file
 
 function construct_linear_map(A)
@@ -146,6 +148,9 @@ function abf3d_scan(p::Params)
     ltc = Lattice2D(p.L, p.L, 4)
     ltc_p = Lattice2D(p.L, p.L, 2)
     boxidx = box_inds(ltc_p, p.l)
+    DF_store = Array{DataFrame}(undef, length(p.θ), length(p.W), length(p.E_c))
+    FN_store = Array{String}(undef, length(p.θ), length(p.W), length(p.E_c))
+    println("Number of threads: $(Threads.nthreads()). Start scanning")
     @Threads.threads for j in 1:length(p.θ)
         fn = "L$(p.L)_Th$(j)" #File name
         H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
@@ -167,7 +172,8 @@ function abf3d_scan(p::Params)
                     D = p.W[jj]*Diagonal(rand(rng, size(H,1)) .- 0.5)
                     @views H_prj = project(U'*(H_dis + D)*U)
                     droptol!(H_prj, 1E-12)
-                    e_inv, psi = eigs(construct_linear_map(500. * Hermitian(H_prj .- E_c[jjj]*I(size(H_prj, 1)))), nev = div(p.L^2, 100), which = :LM);
+                    decomp, = partialschur(construct_linear_map(500. * Hermitian(H_prj .- E_c[jjj]*I(size(H_prj, 1)))), nev = div(p.L^2, 100), tol=1e-5, restarts=100, which = LM())
+                    e_inv, psi = partialeigen(decomp)
                     e = 1 ./ (500. * real.(e_inv)) .+ E_c[jjj]
                     idx = findall(x -> (E_c[jjj] - E_del) < x && x < (E_c[jjj] + E_del), e)
                     @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 12), r = fill(r, length(idx)))
@@ -177,12 +183,16 @@ function abf3d_scan(p::Params)
                     append!(df, df_temp)
                     r += 1
                 end
-                CSV.write(fn*"_W$(jj)_E$(jjj).csv", df)
+                DF_store[j, jj, jjj] = df
+                FN_store[j, jj, jjj] = fn*"_W$(jj)_E$(jjj).csv"
                 df = DataFrame(E = Float64[], r = Int64[])
                 for k in 1:length(p.q)
                     insertcols!(df, q_str[k] => Float64[])
                 end
             end
         end
+    end
+    for i in eachindex(DF_store) #save
+        CSV.write(FN_store[i], DF_store[i])
     end
 end
