@@ -8,7 +8,7 @@ using LsqFit
 using LaTeXStrings
 ##
 marker = (:circle, 4, 1., stroke(-0.5, 1., :black))
-line = (:line, :solid, 2)
+line = (:line, :solid, 1.5)
 palette_roag = :Dark2_5
 default(
     framestyle = :box,
@@ -23,7 +23,7 @@ default(
     legendfontsize = 13, palette = :default)
 
 len_W = 20
-L = [40 50 60]
+L = [40 50 60 100 200]
 rdir = "/Users/pcs/codes/project/julia/ABF/ABF2D/V2fine/"
 savedir = "/Users/pcs/data/ABF-sum/2d-sf-sym-pn/"
 
@@ -63,5 +63,14 @@ ylabel!(L"\tilde{\tau}")
 
 p2 = plot(E, τ_std, legend = :bottomleft, line = line, label = lbl)
 
+X = vec(1 ./ L)
+Y = vec(τ[1, :])
+m = (diff(Y) ./ diff(X))[1]
+scatter(X, Y)
+X2 = range(0, 0.5, length = 5)
+plot!(X2, m*(X2 .-X[3]) .+ Y[3])
+xlims!(0, 0.025)
+ylims!(1.65, 2.)
 
+display(p)
 savefig(p, savedir*"tau_L40_100_th_0.25.pdf")
