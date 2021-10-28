@@ -9,7 +9,7 @@ using ABFSym
 using Lattice
 using PN
 
-LinearAlgebra.BLAS.set_num_threads(5)
+LinearAlgebra.BLAS.set_num_threads(1)
 include("./ed-sf-sym-fixed-eps-params.jl") # read parameters from configuration file
 
 function construct_linear_map(A)
@@ -148,8 +148,8 @@ function abf3d_scan(p::Params)
     ltc = Lattice2D(p.L, p.L, 4)
     ltc_p = Lattice2D(p.L, p.L, 2)
     boxidx = box_inds(ltc_p, p.l)
-    DF_store = Array{DataFrame}(undef, length(p.θ), length(p.W), length(p.E_c))
-    FN_store = Array{String}(undef, length(p.θ), length(p.W), length(p.E_c))
+    DF_store = Array{DataFrame}(undef, length(p.θ), length(p.W), p.end_E_ind - p.start_E_ind + 1)
+    FN_store = Array{String}(undef, length(p.θ), length(p.W), p.end_E_ind - p.start_E_ind + 1)
     println("Number of threads: $(Threads.nthreads()). Start scanning")
     @Threads.threads for j in 1:length(p.θ)
         fn = "L$(p.L)_Th$(j)" #File name
@@ -164,7 +164,7 @@ function abf3d_scan(p::Params)
             println("Bandwidth estimated: $(BW)")
             E_c = range(0.0001, BW/2*0.95, length = length(p.E_c))
             E_del = (E_c[2] - E_c[1])/8
-            for jjj in 1:length(E_c)
+            for jjj in p.start_E_ind:p.end_E_ind
                 r = 1
                 @time while size(df, 1) <= p.R
                     # Add disorder & detangle & project
@@ -183,8 +183,8 @@ function abf3d_scan(p::Params)
                     append!(df, df_temp)
                     r += 1
                 end
-                DF_store[j, jj, jjj] = df
-                FN_store[j, jj, jjj] = fn*"_W$(jj)_E$(jjj).csv"
+                DF_store[j, jj, jjj - p.start_E_ind + 1] = df
+                FN_store[j, jj, jjj - p.start_E_ind + 1] = fn*"_W$(jj)_E$(jjj).csv"
                 df = DataFrame(E = Float64[], r = Int64[])
                 for k in 1:length(p.q)
                     insertcols!(df, q_str[k] => Float64[])
