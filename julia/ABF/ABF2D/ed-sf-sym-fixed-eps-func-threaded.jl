@@ -9,7 +9,7 @@ using ABFSym
 using Lattice
 using PN
 
-LinearAlgebra.BLAS.set_num_threads(1)
+LinearAlgebra.BLAS.set_num_threads(5)
 include("./ed-sf-sym-fixed-eps-params.jl") # read parameters from configuration file
 
 function construct_linear_map(A)
