@@ -158,7 +158,7 @@ function abf3d_scan(p::Params)
             insertcols!(df, q_str[k] => Float64[])
         end
         for jj in 1:length(p.W)
-            BW = estimate_bw(p, p.θ[j], p.W[jj])
+            BW = estimate_bw(p, p.θ[j], p.W[jj], rng)
             println("Bandwidth estimated: $(BW)")
             E_c = range(0.0001, BW/2*0.95, length = length(p.E_c))
             E_del = (E_c[2] - E_c[1])/8

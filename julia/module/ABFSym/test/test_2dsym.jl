@@ -46,12 +46,6 @@ end
 
 
 function makesym2d(ltc, H, V1, V2)
-    V0 = [1 0; 0 1]
-    Vx = symp_v(V1, V2, 0)
-    Vy = symp_v(V1, V2, pi/16)
-    Vd1 = symp_v(V1, V2, pi/8)
-    Vd2 = symp_v(V1, V2, pi/2)
-
     t0 = Float64[]
     t1 = Float64[]
     t2 = Float64[]
@@ -66,25 +60,25 @@ function makesym2d(ltc, H, V1, V2)
         push!(t3, H[index(ltc, (m, n, i)), index(ltc, (m + 1, n + 1, j))])
         push!(t4, H[index(ltc, (m + 1, n, i)), index(ltc, (m, n + 1, j))])
     end
-    display(t0)
-    I, J, val = findnz(Diagonal(H))
-    val = Vector(val)
+    I = Int64[];
+    J = Int64[];
+    val = ComplexF64[];
+    Id = LinearAlgebra.I(2)
     for m in 1:ltc.M, n in 1:ltc.N
         for i in 1:2, j in 1:2
-            if i != j
-                symplectic_coupling!(ltc, t0[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n), i, j, V0)
-            end
-
+            Vx = symp_v(V1, V2, 0)
+            Vy = symp_v(V1, V2, pi/2)
+            Vd1 = symp_v(V1, V2, 0)
+            Vd2 = symp_v(V1, V2, 0)
+            symplectic_coupling!(ltc, t0[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n), i, j, Id)
             symplectic_coupling!(ltc, t1[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n + 1), i, j, Vx)
-            symplectic_coupling!(ltc, t1[2(j-1) + (i-1) + 1], I, J, val, (m, n + 1), (m, n), i, j, Vx')
-
+            symplectic_coupling!(ltc, t1[2(i-1) + (j-1) + 1], I, J, val, (m, n + 1), (m, n), j, i, Vx')
             symplectic_coupling!(ltc, t2[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m + 1, n), i, j, Vy)
-            symplectic_coupling!(ltc, t2[2(j-1) + (i-1) + 1], I, J, val, (m + 1, n), (m, n), i, j, Vy')
+            symplectic_coupling!(ltc, t2[2(i-1) + (j-1) + 1], I, J, val, (m + 1, n), (m, n), j, i, Vy')
             symplectic_coupling!(ltc, t3[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m + 1, n + 1), i, j, Vd1)
-            symplectic_coupling!(ltc, t3[2(j-1) + (i-1) + 1], I, J, val, (m + 1, n + 1), (m, n), i, j, Vd1')
-
+            symplectic_coupling!(ltc, t3[2(i-1) + (j-1) + 1], I, J, val, (m + 1, n + 1), (m, n), j, i, Vd1')
             symplectic_coupling!(ltc, t4[2(i-1) + (j-1) + 1], I, J, val, (m + 1, n), (m, n + 1), i, j, Vd2)
-            symplectic_coupling!(ltc, t4[2(j-1) + (i-1) + 1], I, J, val, (m, n + 1), (m + 1, n), i, j, Vd2')
+            symplectic_coupling!(ltc, t4[2(i-1) + (j-1) + 1], I, J, val, (m, n + 1), (m + 1, n), j, i, Vd2')
         end
     end
     return sparse(I, J, val, size(H, 1), size(H, 2))
@@ -93,7 +87,7 @@ end
 ltc = Lattice2D(10, 10, 4)
 H, U = ham_fe(ltc, -1., 1., 0.125)
 H = convert.(ComplexF64, H)
-H2 = makesym2d(ltc, H, 1.,  0.0)
+H2 = makesym2d(ltc, H, 1.,  1.)
 ishermitian(H2)
 
 # display(Matrix(H[1:4, 1:4]))
@@ -104,7 +98,7 @@ ishermitian(H2)
 
 D = 0.1*spdiagm(0 => rand(size(H, 1)) .- 0.5)
 vals, vecs = eigen(Hermitian((Matrix(H2))))
-H_fd = Matrix(U'*H*U)
+H_fd = round.(Matrix(U'*H2*U), digits = 12)
 scatter(vals)
 vals, vecs = eigen(Hermitian((Matrix(project(U*(H2 + 0.1D)*U')))))
 pn = compute_pns(vecs)

@@ -55,7 +55,7 @@ ltc = Lattice1D(10, 4)
 H, U = ham_fe(ltc, -1, 1, 0.25)
 H_fd0 = U'*H*U
 H = convert.(ComplexF64, H)
-makesym!(ltc, H, 1/sqrt(2), 1/sqrt(2), 0)
+makesym!(ltc, H, 1., 1., 0)
 ishermitian(H)
 H_fd = U'*H*U
 ishermitian(H_fd)
@@ -64,7 +64,7 @@ H_fd = Matrix(H_fd)
 vals, vecs = eigen(H_fd)
 scatter(vals)
 U2 = [0. 0.859197; -0.859197 0.]
-H2 = H_fd[1:2,1:2]
+H2 = H_fd[1:2, 1:2]
 
 vals2, vecs2 = eigen(Matrix(Hermitian(H_fd[1:4, 1:4])))
 vecs2 = vecs2[:, [1,3,2,4]]
@@ -73,3 +73,16 @@ round.(H_diag, digits = 12)
 
 vecs2'
 display(round.(vecs2, digits = 12))
+
+θ= 0.25
+H, _ = ham_fe(ltc, -1, 1, θ)
+H = convert.(ComplexF64, H)
+makesym!(ltc, H, 1., 1., 0)
+
+U1 = LUT(ltc, θ)
+U2 = redef1(ltc)
+U3 = U1
+
+H_sd2 = round.(U3'*H*U3, digits = 12)
+H_sd1 = round.(U2'*H_sd2*U2, digits = 12)
+H_fd = round.(U1'*H_sd1*U1, digits = 12)

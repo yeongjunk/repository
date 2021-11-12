@@ -62,6 +62,20 @@ function symp_dis(V1, V2; rng = Random.GLOBAL_RNG)
     return [V1 exp(-im*ϕ_dis)*V2_dis; -exp(im*ϕ_dis)*V2_dis V1]
 end
 
+function symp_dis!(V1, V2; rng = Random.GLOBAL_RNG)
+    V2_dis = V2*(rand(rng) .- 0.5)
+    ϕ_dis = 2pi*rand(rng)
+    return [V1 exp(-im*ϕ_dis)*V2_dis; -exp(im*ϕ_dis)*V2_dis V1]
+end
+
+
+
+@doc """
+Given 2D lattice coordinate (m, n), Return
+ nearest neighbour, and nearest diagonal lattice coordinates.
+"""
+
+
 function makesym2d(ltc, H, V1, V2; rng = Random.GLOBAL_RNG)
     t0 = Float64[]
     t1 = Float64[]
@@ -77,18 +91,58 @@ function makesym2d(ltc, H, V1, V2; rng = Random.GLOBAL_RNG)
         push!(t3, H[index(ltc, (m, n, i)), index(ltc, (m + 1, n + 1, j))])
         push!(t4, H[index(ltc, (m + 1, n, i)), index(ltc, (m, n + 1, j))])
     end
-    I, J, val = findnz(sparse(Diagonal(H)))
-    val = Vector(val)
+    I = Int64[];
+    J = Int64[];
+    val = ComplexF64[];
+    Id = LinearAlgebra.I(2)
+
     for m in 1:ltc.M, n in 1:ltc.N
         for i in 1:2, j in 1:2
-            if i != j
-                symplectic_coupling!(ltc, t0[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n), i, j, [1 0; 0 1])
-            end
             Vx = symp_dis(V1, V2, rng = rng)
             Vy = symp_dis(V1, V2, rng = rng)
             Vd1 = symp_dis(V1, V2, rng = rng)
             Vd2 = symp_dis(V1, V2, rng = rng)
 
+            symplectic_coupling!(ltc, t0[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n), i, j, Id)
+            symplectic_coupling!(ltc, t1[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n + 1), i, j, Vx)
+            # symplectic_coupling!(ltc, t1[2(i-1) + (j-1) + 1], I, J, val, (m, n + 1), (m, n), j, i, Vx')
+            symplectic_coupling!(ltc, t2[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m + 1, n), i, j, Vy)
+            # symplectic_coupling!(ltc, t2[2(i-1) + (j-1) + 1], I, J, val, (m + 1, n), (m, n), j, i, Vy')
+            symplectic_coupling!(ltc, t3[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m + 1, n + 1), i, j, Vd1)
+            # symplectic_coupling!(ltc, t3[2(i-1) + (j-1) + 1], I, J, val, (m + 1, n + 1), (m, n), j, i, Vd1')
+            symplectic_coupling!(ltc, t4[2(i-1) + (j-1) + 1], I, J, val, (m + 1, n), (m, n + 1), i, j, Vd2)
+            # symplectic_coupling!(ltc, t4[2(i-1) + (j-1) + 1], I, J, val, (m, n + 1), (m + 1, n), j, i, Vd2')
+        end
+    end
+    return sparse(I, J, val, size(H, 1), size(H, 2))
+end
+
+function makesym2d2(ltc, H, V1, V2; rng = Random.GLOBAL_RNG)
+    t0 = Float64[]
+    t1 = Float64[]
+    t2 = Float64[]
+    t3 = Float64[]
+    t4 = Float64[]
+
+    n, m = 1, 1
+    for i in 1:2, j in 1:2
+        push!(t0, H[index(ltc, (m, n, i)), index(ltc, (m, n, j))] )
+        push!(t1, H[index(ltc, (m, n, i)), index(ltc, (m, n + 1, j))])
+        push!(t2, H[index(ltc, (m, n, i)), index(ltc, (m + 1, n, j))])
+        push!(t3, H[index(ltc, (m, n, i)), index(ltc, (m + 1, n + 1, j))])
+        push!(t4, H[index(ltc, (m + 1, n, i)), index(ltc, (m, n + 1, j))])
+    end
+    I = Int64[];
+    J = Int64[];
+    val = ComplexF64[];
+    Id = LinearAlgebra.I(2)
+    for m in 1:ltc.M, n in 1:ltc.N
+        for i in 1:2, j in 1:2
+            Vx = symp_dis(V1, V2, rng = rng)
+            Vy = symp_dis(V1, V2, rng = rng)
+            Vd1 = symp_dis(V1, V2, rng = rng)
+            Vd2 = symp_dis(V1, V2, rng = rng)
+            symplectic_coupling!(ltc, t0[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n), i, j, Id)
             symplectic_coupling!(ltc, t1[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n + 1), i, j, Vx)
             symplectic_coupling!(ltc, t1[2(i-1) + (j-1) + 1], I, J, val, (m, n + 1), (m, n), j, i, Vx')
             symplectic_coupling!(ltc, t2[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m + 1, n), i, j, Vy)
@@ -102,10 +156,13 @@ function makesym2d(ltc, H, V1, V2; rng = Random.GLOBAL_RNG)
     return sparse(I, J, val, size(H, 1), size(H, 2))
 end
 
-ltc = Lattice2D(10, 10, 4)
-H, U = ham_fe(ltc, -2., 0., 0.25)
+ltc = Lattice2D(100, 100, 4)
+H, U = ham_fe(ltc, -2., 0., 0.125)
 H = convert.(ComplexF64, H)
-H2 = makesym2d(ltc, H, 1.,  0.01; rng = MersenneTwister(1))
+H2 = makesym2d(ltc, H, 1.,  1.; rng = MersenneTwister(1))
+@profiler H22 = makesym2d2(ltc, H, 1.,  1.; rng = MersenneTwister(1))
+Hdif = Hermitian(H2) - H22
+droptol!(Hdif, 1E-12)
 ishermitian(H2)
 heatmap(abs.(Matrix(H2)))
 # display(Matrix(H[1:4, 1:4]))
