@@ -170,10 +170,10 @@ function abf3d_scan(p::Params)
                     D = p.W[jj]*Diagonal(rand(rng, size(H,1)) .- 0.5)
                     @views H_prj = project(U'*(H_dis + D)*U)
                     droptol!(H_prj, 1E-12)
-                    e_inv, psi, info = eigsolve(construct_linear_map(p.L^2. * Hermitian(H_prj .- E_c[jjj]*I(size(H_prj, 1)))), size(H_prj, 1),
+                    e_inv, psi, info = eigsolve(construct_linear_map(p.L^2/100 * Hermitian(H_prj .- E_c[jjj]*I(size(H_prj, 1)))), size(H_prj, 1),
                         div(p.L^2, 100), :LM, ishermitian = true, krylovdim = max(30, 2*div(p.L^2, 100)+1));
 
-                    e = 1 ./ (p.L^2. * real.(e_inv)) .+ E_c[jjj]
+                    e = 1 ./ (p.L^2/100 * real.(e_inv)) .+ E_c[jjj]
                     psi = reduce(hcat, psi)
 
                     idx = findall(x -> (E_c[jjj] - E_del) < x && x < (E_c[jjj] + E_del), e)
