@@ -1,5 +1,5 @@
 
-using LinearAlgebra, SparseArrays, ArnoldiMethod
+using LinearAlgebra, SparseArrays, KrylovKit
 using LinearMaps
 using Random
 using DataFrames, CSV
@@ -9,7 +9,6 @@ using ABFSym
 using Lattice
 using PN
 
-LinearAlgebra.BLAS.set_num_threads(1)
 include("./ed-sf-sym-fixed-eps-params.jl") # read parameters from configuration file
 
 function construct_linear_map(A)
@@ -90,7 +89,6 @@ function symp_dis(V1, V2; rng = Random.GLOBAL_RNG)
     ϕ_dis = 2pi*rand(rng)
     return [V1 exp(-im*ϕ_dis)*V2_dis; -exp(im*ϕ_dis)*V2_dis V1]
 end
-
 function makesym2d(ltc, H, V1, V2; rng = Random.GLOBAL_RNG)
     t0 = Float64[]
     t1 = Float64[]
@@ -106,23 +104,24 @@ function makesym2d(ltc, H, V1, V2; rng = Random.GLOBAL_RNG)
         push!(t3, H[index(ltc, (m, n, i)), index(ltc, (m + 1, n + 1, j))])
         push!(t4, H[index(ltc, (m + 1, n, i)), index(ltc, (m, n + 1, j))])
     end
-    I, J, val = findnz(sparse(Diagonal(H)))
-    val = Vector(val)
+    I = Int64[];
+    J = Int64[];
+    val = ComplexF64[];
+    Id = LinearAlgebra.I(2)
     for m in 1:ltc.M, n in 1:ltc.N
         for i in 1:2, j in 1:2
-            if i != j
-                symplectic_coupling!(ltc, t0[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n), i, j, [1 0; 0 1])
-            end
+
             Vx = symp_dis(V1, V2, rng = rng)
+            Vy = symp_dis(V1, V2, rng = rng)
+            Vd1 = symp_dis(V1, V2, rng = rng)
+            Vd2 = symp_dis(V1, V2, rng = rng)
+            symplectic_coupling!(ltc, t0[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n), i, j, Id)
             symplectic_coupling!(ltc, t1[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n + 1), i, j, Vx)
             symplectic_coupling!(ltc, t1[2(i-1) + (j-1) + 1], I, J, val, (m, n + 1), (m, n), j, i, Vx')
-            Vy = symp_dis(V1, V2, rng = rng)
             symplectic_coupling!(ltc, t2[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m + 1, n), i, j, Vy)
             symplectic_coupling!(ltc, t2[2(i-1) + (j-1) + 1], I, J, val, (m + 1, n), (m, n), j, i, Vy')
-            Vd1 = symp_dis(V1, V2, rng = rng)
             symplectic_coupling!(ltc, t3[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m + 1, n + 1), i, j, Vd1)
             symplectic_coupling!(ltc, t3[2(i-1) + (j-1) + 1], I, J, val, (m + 1, n + 1), (m, n), j, i, Vd1')
-            Vd2 = symp_dis(V1, V2, rng = rng)
             symplectic_coupling!(ltc, t4[2(i-1) + (j-1) + 1], I, J, val, (m + 1, n), (m, n + 1), i, j, Vd2)
             symplectic_coupling!(ltc, t4[2(i-1) + (j-1) + 1], I, J, val, (m, n + 1), (m + 1, n), j, i, Vd2')
         end
@@ -130,17 +129,16 @@ function makesym2d(ltc, H, V1, V2; rng = Random.GLOBAL_RNG)
     return sparse(I, J, val, size(H, 1), size(H, 2))
 end
 
-function estimate_bw(p, θ, W)
-    ltc = Lattice2D(20, 20, 4)
-    ltc_p = Lattice2D(20, 20, 2)
-    rng = MersenneTwister()
+function estimate_bw(p, θ, W, rng)
+    ltc = Lattice2D(50, 50, 4)
+    ltc_p = Lattice2D(50, 50, 2)
     H, U = ham_fe(ltc, -2, 0, θ) # Fully entangled hamiltonian
     H = convert.(ComplexF64, H)
     H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng)
     D = W*Diagonal(rand(rng, size(H,1)) .- 0.5)
     @views H_prj = project(U'*(H_dis + D)*U)
-    vals = eigvals!(Hermitian(Matrix(H_prj)))
-    return 2*maximum(vals)
+    vals, psi, info = eigsolve(Hermitian(H_prj), size(H_prj, 1), 1, :LM, ishermitian = true, krylovdim = 30)
+    return 2*abs(maximum(vals))
 end
 function abf3d_scan(p::Params)
     q_str = "q".*string.(p.q)
@@ -172,9 +170,12 @@ function abf3d_scan(p::Params)
                     D = p.W[jj]*Diagonal(rand(rng, size(H,1)) .- 0.5)
                     @views H_prj = project(U'*(H_dis + D)*U)
                     droptol!(H_prj, 1E-12)
-                    decomp, = partialschur(construct_linear_map(500. * Hermitian(H_prj .- E_c[jjj]*I(size(H_prj, 1)))), nev = div(p.L^2, 100), tol=1e-6, restarts=100, which = LM())
-                    e_inv, psi = partialeigen(decomp)
-                    e = 1 ./ (500. * real.(e_inv)) .+ E_c[jjj]
+                    e_inv, psi, info = eigsolve(construct_linear_map(p.L^2. * Hermitian(H_prj .- E_c[jjj]*I(size(H_prj, 1)))), size(H_prj, 1),
+                        div(p.L^2, 100), :LM, ishermitian = true, krylovdim = max(30, 2*div(p.L^2, 100)+1));
+
+                    e = 1 ./ (p.L^2. * real.(e_inv)) .+ E_c[jjj]
+                    psi = reduce(hcat, psi)
+
                     idx = findall(x -> (E_c[jjj] - E_del) < x && x < (E_c[jjj] + E_del), e)
                     @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 12), r = fill(r, length(idx)))
                     for k in 1:length(p.q)

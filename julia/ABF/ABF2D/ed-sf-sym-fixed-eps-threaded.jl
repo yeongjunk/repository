@@ -7,7 +7,8 @@ using ArgParse, JSON
 using ABFSym
 using Lattice
 using PN
-LinearAlgebra.BLAS.set_num_threads(5)
+LinearAlgebra.BLAS.set_num_threads(Threads.nthreads())
+# LinearAlgebra.BLAS.set_num_threads(1)
 
 include("./ed-sf-sym-fixed-eps-func-threaded.jl") # read parameters from configuration file
 function main(ARGS)

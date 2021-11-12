@@ -10,32 +10,32 @@ using LaTeXStrings
 marker = (:circle, 4, 1., stroke(-0.5, 1., :black))
 line = (:line, :solid, 1.5)
 palette_roag = :Dark2_5
-default(
-    framestyle = :box,
-    size = (600,400),
-    # right_margin = [3mm 0mm],
-    grid = false,
-    minorticks = true,
-    legend = (0.1, 0.75),
-    fontfamily = "computer modern",
-    tickfontsize = 13,
-    guidefontsize = 13,
-    legendfontsize = 13, palette = :default)
+# default(
+#     framestyle = :box,
+#     size = (600,400),
+#     # right_margin = [3mm 0mm],
+#     grid = false,
+#     minorticks = true,
+#     legend = (0.1, 0.75),
+#     fontfamily = "computer modern",
+#     tickfontsize = 13,
+#     guidefontsize = 13,
+#     legendfontsize = 13, palette = :default)
 
 len_W = 20
-L = [40 50 60 100 200]
-rdir = "/Users/pcs/codes/project/julia/ABF/ABF2D/V2fine/"
+L = [50 100]
+rdir = ["/Users/pcs/data/ABF2D/symplectic/L$(l)/" for l in L]
 savedir = "/Users/pcs/data/ABF-sum/2d-sf-sym-pn/"
 
 # dir = ["L$(L[i])_Th1_W$(j)_E1.csv" for i in 1:length(L), j in 1:len_W]
-dir = ["L$(L[i])_Th1_W1_E$(j).csv" for i in 1:length(L), j in 1:len_W]
+dir = ["L$(L[i])_Th4_W1_E$(j).csv" for i in 1:length(L), j in 1:len_W]
 
 ipr_mean = Array{Float64}(undef, len_W, length(L))
 ipr_std = similar(ipr_mean)
 ipr_ste = similar(ipr_mean)
 for i in 1:length(L)
     for j in 1:len_W
-        df = CSV.read(rdir*dir[i, j], DataFrame)
+        df = CSV.read(rdir[i]*dir[i, j], DataFrame)
         ipr_mean[j, i] = mean(df.q2)
         ipr_std[j, i] = std(df.q2)
         ipr_ste[j, i] = ipr_std[j, i] / sqrt(length(df.E))
@@ -57,7 +57,10 @@ lbl = [L"$L = %$(L[i])$" for i in 1:length(L)]
 lbl = reshape(lbl, 1, length(L))
 
 E= range(0.001, 0.17, length = 20)
-p = plot(E, τ, yerror = τ_err, legend = :bottomleft, line = line, label = lbl)
+p = plot(legend = :bottomleft)
+for i in 1:length(L)
+    plot!(p, E, τ[:, i], yerror = τ_err, line = line, label = lbl[i])
+end
 xlabel!(L"E")
 ylabel!(L"\tilde{\tau}")
 
@@ -73,4 +76,4 @@ xlims!(0, 0.025)
 ylims!(1.65, 2.)
 
 display(p)
-savefig(p, savedir*"tau_L40_100_th_0.25.pdf")
+# savefig(p, savedir*"tau_L40_100_th_0.25.pdf")

@@ -7,7 +7,6 @@ using ArgParse, JSON
 using ABFSym
 using Lattice
 using PN
-LinearAlgebra.BLAS.set_num_threads(Threads.nthreads())
 include("./ed-sf-sym-fixed-eps-params.jl") # read parameters from configuration file
 
 function construct_linear_map(A)
@@ -104,23 +103,24 @@ function makesym2d(ltc, H, V1, V2; rng = Random.GLOBAL_RNG)
         push!(t3, H[index(ltc, (m, n, i)), index(ltc, (m + 1, n + 1, j))])
         push!(t4, H[index(ltc, (m + 1, n, i)), index(ltc, (m, n + 1, j))])
     end
-    I, J, val = findnz(sparse(Diagonal(H)))
-    val = Vector(val)
+    I = Int64[];
+    J = Int64[];
+    val = ComplexF64[];
+    Id = LinearAlgebra.I(2)
     for m in 1:ltc.M, n in 1:ltc.N
         for i in 1:2, j in 1:2
-            if i != j
-                symplectic_coupling!(ltc, t0[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n), i, j, [1 0; 0 1])
-            end
+
             Vx = symp_dis(V1, V2, rng = rng)
+            Vy = symp_dis(V1, V2, rng = rng)
+            Vd1 = symp_dis(V1, V2, rng = rng)
+            Vd2 = symp_dis(V1, V2, rng = rng)
+            symplectic_coupling!(ltc, t0[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n), i, j, Id)
             symplectic_coupling!(ltc, t1[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m, n + 1), i, j, Vx)
             symplectic_coupling!(ltc, t1[2(i-1) + (j-1) + 1], I, J, val, (m, n + 1), (m, n), j, i, Vx')
-            Vy = symp_dis(V1, V2, rng = rng)
             symplectic_coupling!(ltc, t2[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m + 1, n), i, j, Vy)
             symplectic_coupling!(ltc, t2[2(i-1) + (j-1) + 1], I, J, val, (m + 1, n), (m, n), j, i, Vy')
-            Vd1 = symp_dis(V1, V2, rng = rng)
             symplectic_coupling!(ltc, t3[2(i-1) + (j-1) + 1], I, J, val, (m, n), (m + 1, n + 1), i, j, Vd1)
             symplectic_coupling!(ltc, t3[2(i-1) + (j-1) + 1], I, J, val, (m + 1, n + 1), (m, n), j, i, Vd1')
-            Vd2 = symp_dis(V1, V2, rng = rng)
             symplectic_coupling!(ltc, t4[2(i-1) + (j-1) + 1], I, J, val, (m + 1, n), (m, n + 1), i, j, Vd2)
             symplectic_coupling!(ltc, t4[2(i-1) + (j-1) + 1], I, J, val, (m, n + 1), (m + 1, n), j, i, Vd2')
         end
@@ -146,6 +146,9 @@ function abf3d_scan(p::Params)
     ltc = Lattice2D(p.L, p.L, 4)
     ltc_p = Lattice2D(p.L, p.L, 2)
     boxidx = box_inds(ltc_p, p.l)
+    DF_store = Array{DataFrame}(undef, length(p.θ), length(p.W), p.end_E_ind - p.start_E_ind + 1)
+    FN_store = Array{String}(undef, length(p.θ), length(p.W), p.end_E_ind - p.start_E_ind + 1)
+
     for j in 1:length(p.θ)
         fn = "L$(p.L)_Th$(j)" #File name
         H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
@@ -159,7 +162,7 @@ function abf3d_scan(p::Params)
             println("Bandwidth estimated: $(BW)")
             E_c = range(0.0001, BW/2*0.95, length = length(p.E_c))
             E_del = (E_c[2] - E_c[1])/8
-            for jjj in 1:length(E_c)
+            for jjj in p.start_E_ind:p.end_E_ind
                 r = 1
                 @time while size(df, 1) <= p.R
                     # Add disorder & detangle & project
@@ -177,12 +180,16 @@ function abf3d_scan(p::Params)
                     append!(df, df_temp)
                     r += 1
                 end
-                CSV.write(fn*"_W$(jj)_E$(jjj).csv", df)
+                DF_store[j, jj, jjj - p.start_E_ind + 1] = df
+                FN_store[j, jj, jjj - p.start_E_ind + 1] = fn*"_W$(jj)_E$(jjj).csv"
                 df = DataFrame(E = Float64[], r = Int64[])
                 for k in 1:length(p.q)
                     insertcols!(df, q_str[k] => Float64[])
                 end
             end
         end
+    end
+    for i in eachindex(DF_store) #save
+        CSV.write(FN_store[i], DF_store[i])
     end
 end

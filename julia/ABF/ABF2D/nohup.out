@@ -147,3 +147,13 @@ Allocations: 34984377 (Pool: 34975229; Big: 9148); GC: 38
 2492.271700 seconds (63.93 M allocations: 74.205 GiB, 0.05% gc time)
 2384.924308 seconds (63.93 M allocations: 73.246 GiB, 0.06% gc time)
 2930.361100 seconds (82.19 M allocations: 92.941 GiB, 0.06% gc time)
+ERROR: LoadError: LoadError: syntax: "while" at /Users/pcs/codes/project/julia/ABF/ABF2D/ed-sf-sym-fixed-eps-func-threaded.jl:168 expected "end", got ")"
+Stacktrace:
+ [1] top-level scope
+   @ ~/codes/project/julia/ABF/ABF2D/ed-sf-sym-fixed-eps-func-threaded.jl:174
+ [2] include(fname::String)
+   @ Base.MainInclude ./client.jl:444
+ [3] top-level scope
+   @ ~/codes/project/julia/ABF/ABF2D/ed-sf-sym-fixed-eps-threaded.jl:12
+in expression starting at /Users/pcs/codes/project/julia/ABF/ABF2D/ed-sf-sym-fixed-eps-func-threaded.jl:174
+in expression starting at /Users/pcs/codes/project/julia/ABF/ABF2D/ed-sf-sym-fixed-eps-threaded.jl:12
