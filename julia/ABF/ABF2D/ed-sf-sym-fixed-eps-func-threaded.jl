@@ -170,7 +170,6 @@ function abf3d_scan(p::Params)
                     insertcols!(df[t], q_str[k] => Float64[])
                 end
                 @Threads.threads for r in 1:p.R÷p.nev# Realizations
-
                     er = true
                     er_num = 0
                     while er
@@ -196,7 +195,7 @@ function abf3d_scan(p::Params)
                             er = false
                         catch
                             println("There was an error")
-                            er += 1
+                            er_num += 1
                             continue
                         end
                     end
