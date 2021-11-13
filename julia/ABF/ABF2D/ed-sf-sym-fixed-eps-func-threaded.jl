@@ -161,11 +161,11 @@ function abf3d_scan(p::Params)
         fn = "L$(p.L)_Th$(j)" #File name
         H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
         H = convert.(ComplexF64, H)
-        df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
-        for t in 1:nt, k in 1:length(p.q)
-            insertcols!(df[t], q_str[k] => Float64[])
-        end
         for jj in 1:length(p.W)
+            df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
+            for t in 1:nt, k in 1:length(p.q)
+                insertcols!(df[t], q_str[k] => Float64[])
+            end
             BW, E_c, E_del = estimate_energy_params(p, p.θ[j], p.W[jj], 50, 0.9, 8, rng[1])
             println("Number of threads: $(nt)")
             println("Bandwidth estimated: $(BW)")
@@ -193,16 +193,15 @@ function abf3d_scan(p::Params)
                     for k in 1:length(p.q)
                         @views insertcols!(df_temp, q_str[k] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx, q = p.q[k]), sigdigits = 12))
                     end
-
                     append!(df[x], df_temp)
                 end
                 DF_store[j, jj, jjj - p.start_E_ind + 1] = vcat(df...)
                 FN_store[j, jj, jjj - p.start_E_ind + 1] = fn*"_W$(jj)_E$(jjj).csv"
-
+                for i in eachindex(DF_store) #save
+                    CSV.write(FN_store[i], DF_store[i])
+                end
             end
         end
     end
-    for i in eachindex(DF_store) #save
-        CSV.write(FN_store[i], DF_store[i])
-    end
+
 end
