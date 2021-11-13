@@ -8,6 +8,7 @@ using ABFSym
 using Lattice
 using PN
 LinearAlgebra.BLAS.set_num_threads(6)
+ENV["JULIA_COPY_STACKS"] = 1
 
 include("./ed-sf-sym-fixed-eps-func-threaded.jl") # read parameters from configuration file
 function main(ARGS)
