@@ -162,23 +162,20 @@ function abf3d_scan(p::Params)
         H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
         H = convert.(ComplexF64, H)
         for jj in 1:length(p.W)
-            DF_store = Array{DataFrame}(undef, length(p.θ), length(p.W), p.end_E_ind - p.start_E_ind + 1)
-            FN_store = Array{String}(undef, length(p.θ), length(p.W), p.end_E_ind - p.start_E_ind + 1)
-
-            df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
-            for t in 1:nt, k in 1:length(p.q)
-                insertcols!(df[t], q_str[k] => Float64[])
-            end
             BW, E_c, E_del = estimate_energy_params(p, p.θ[j], p.W[jj], 50, 0.9, 8, rng[1])
             println("Number of threads: $(nt)")
             println("Bandwidth estimated: $(BW)")
             println("Energy bin width: $(E_del)")
             for jjj in p.start_E_ind:p.end_E_ind
+                df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
+                for t in 1:nt, k in 1:length(p.q)
+                    insertcols!(df[t], q_str[k] => Float64[])
+                end
                 @Threads.threads for r in 1:p.R÷p.nev# Realizations
                     x = Threads.threadid()
                     # Add disorder & detangle & project
                     H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng[x])
-                    D = p.W[jj]*Diagonal(rand(rng[x], size(H,1)) .- 0.5)
+                    D = p.W[jj]*InvertedIndexagonal(rand(rng[x], size(H,1)) .- 0.5)
                     @views H_prj = project(U'*(H_dis + D)*U)
                     droptol!(H_prj, 1E-12)
 
