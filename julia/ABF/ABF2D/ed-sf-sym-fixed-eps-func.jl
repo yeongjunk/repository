@@ -11,7 +11,7 @@ include("./ed-sf-sym-fixed-eps-params.jl") # read parameters from configuration 
 
 function construct_linear_map(A)
     F = factorize(A)
-    LinearMap{eltype(A)}((y, x) -> ldiv2!(y, F, x), size(A, 1), ismutating = true)
+    LinearMap{eltype(A)}((y, x) -> ldiv2!(y, F, x), size(A, 1), ismutating = true, ishermitian = true)
 end
 
 function ldiv2!(y, F, x)

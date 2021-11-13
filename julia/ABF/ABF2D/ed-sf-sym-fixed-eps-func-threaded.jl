@@ -129,9 +129,8 @@ function makesym2d(ltc, H, V1, V2; rng = Random.GLOBAL_RNG)
     return sparse(I, J, val, size(H, 1), size(H, 2))
 end
 
-function estimate_bw(p, θ, W, rng)
-    ltc = Lattice2D(50, 50, 4)
-    ltc_p = Lattice2D(50, 50, 2)
+function estimate_bw(p, θ, W, L, rng)
+    ltc = Lattice2D(L, L, 4)
     H, U = ham_fe(ltc, -2, 0, θ) # Fully entangled hamiltonian
     H = convert.(ComplexF64, H)
     H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng)
@@ -140,51 +139,64 @@ function estimate_bw(p, θ, W, rng)
     vals, psi, info = eigsolve(Hermitian(H_prj), size(H_prj, 1), 1, :LM, ishermitian = true, krylovdim = 30)
     return 2*abs(maximum(vals))
 end
+
+function estimate_energy_params(p, θ, W, L, E_crop, E_bin_width, rng)
+    BW = estimate_bw(p, θ, W, L, rng)
+    E_c = range(0.0001, BW/2*E_crop, length = p.E_num)
+    E_del = (E_c[2] - E_c[1])/E_bin_width
+    return BW, E_c, E_del
+end
+
+
 function abf3d_scan(p::Params)
     q_str = "q".*string.(p.q)
-    rng = MersenneTwister(p.seed)
+    nt = Threads.nthreads()
+    rng = [MersenneTwister(p.seed + i) for i in 1:nt]
     ltc = Lattice2D(p.L, p.L, 4)
     ltc_p = Lattice2D(p.L, p.L, 2)
     boxidx = box_inds(ltc_p, p.l)
     DF_store = Array{DataFrame}(undef, length(p.θ), length(p.W), p.end_E_ind - p.start_E_ind + 1)
     FN_store = Array{String}(undef, length(p.θ), length(p.W), p.end_E_ind - p.start_E_ind + 1)
-    println("Number of threads: $(Threads.nthreads()). Start scanning")
-    @Threads.threads for j in 1:length(p.θ)
+    for j in 1:length(p.θ)
         fn = "L$(p.L)_Th$(j)" #File name
         H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
         H = convert.(ComplexF64, H)
-        df = DataFrame(E = Float64[], r = Int64[])
-        for k in 1:length(p.q)
-            insertcols!(df, q_str[k] => Float64[])
+        df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
+        for t in 1:nt, k in 1:length(p.q)
+            insertcols!(df[t], q_str[k] => Float64[])
         end
         for jj in 1:length(p.W)
-            BW = estimate_bw(p, p.θ[j], p.W[jj], rng)
+            BW, E_c, E_del = estimate_energy_params(p, p.θ[j], p.W[jj], 50, 0.9, 8, rng[1])
+            println("Number of threads: $(nt)")
             println("Bandwidth estimated: $(BW)")
-            E_c = range(0.0001, BW/2*0.95, length = length(p.E_c))
-            E_del = (E_c[2] - E_c[1])/8
+            println("Energy bin width: $(E_del)")
             for jjj in p.start_E_ind:p.end_E_ind
-                r = 1
-                @time while size(df, 1) <= p.R
+                @Threads.threads for r in 1:p.R÷p.nev# Realizations
+                    x = Threads.threadid()
                     # Add disorder & detangle & project
-                    H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng)
-                    D = p.W[jj]*Diagonal(rand(rng, size(H,1)) .- 0.5)
+                    H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng[x])
+                    D = p.W[jj]*Diagonal(rand(rng[x], size(H,1)) .- 0.5)
                     @views H_prj = project(U'*(H_dis + D)*U)
                     droptol!(H_prj, 1E-12)
-                    e_inv, psi, info = eigsolve(construct_linear_map(p.L^2/100 * Hermitian(H_prj .- E_c[jjj]*I(size(H_prj, 1)))), size(H_prj, 1),
-                        div(p.L^2, 100), :LM, ishermitian = true, krylovdim = max(30, 2*div(p.L^2, 100)+1));
 
-                    e = 1 ./ (p.L^2/100 * real.(e_inv)) .+ E_c[jjj]
+                    #Shift-and-invert Lanczos method
+                    e_inv, psi, info = eigsolve(construct_linear_map(p.L^2 * Hermitian(H_prj .- E_c[jjj]*I(size(H_prj, 1)))), size(H_prj, 1),
+                        p.nev, :LM, ishermitian = true, krylovdim = max(30, 2p.nev + 1));
+                    e = 1 ./ (p.L^2 * real.(e_inv)) .+ E_c[jjj]
                     psi = reduce(hcat, psi)
 
-                    idx = findall(x -> (E_c[jjj] - E_del) < x && x < (E_c[jjj] + E_del), e)
+                    #Crop energies that are outside the energy bins
+                    idx = findall(x -> (E_c[jjj] - E_del) <  x < (E_c[jjj] + E_del), e)
                     @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 12), r = fill(r, length(idx)))
+
+                    #Push PN
                     for k in 1:length(p.q)
                         @views insertcols!(df_temp, q_str[k] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx, q = p.q[k]), sigdigits = 12))
                     end
-                    append!(df, df_temp)
-                    r += 1
+
+                    append!(df[x], df_temp)
                 end
-                DF_store[j, jj, jjj - p.start_E_ind + 1] = df
+                DF_store[j, jj, jjj - p.start_E_ind + 1] = vcat(df...)
                 FN_store[j, jj, jjj - p.start_E_ind + 1] = fn*"_W$(jj)_E$(jjj).csv"
                 df = DataFrame(E = Float64[], r = Int64[])
                 for k in 1:length(p.q)
