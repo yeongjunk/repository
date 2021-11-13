@@ -8,7 +8,7 @@ using ABFSym
 using Lattice
 using PN
 LinearAlgebra.BLAS.set_num_threads(Threads.nthreads())
-
+ENV["JULIA_COPY_STACKS"] = 1
 include("./ed-sf-sym-fixed-eps-func.jl") # read parameters from configuration file
 function main(ARGS)
     opts = ArgParseSettings(description="Scan and compute pn for all parameters of nu=2 ABF")

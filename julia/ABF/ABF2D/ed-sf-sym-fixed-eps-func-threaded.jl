@@ -155,8 +155,6 @@ function abf3d_scan(p::Params)
     ltc = Lattice2D(p.L, p.L, 4)
     ltc_p = Lattice2D(p.L, p.L, 2)
     boxidx = box_inds(ltc_p, p.l)
-    DF_store = Array{DataFrame}(undef, length(p.θ), length(p.W), p.end_E_ind - p.start_E_ind + 1)
-    FN_store = Array{String}(undef, length(p.θ), length(p.W), p.end_E_ind - p.start_E_ind + 1)
     for j in 1:length(p.θ)
         fn = "L$(p.L)_Th$(j)" #File name
         H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
@@ -172,28 +170,37 @@ function abf3d_scan(p::Params)
                     insertcols!(df[t], q_str[k] => Float64[])
                 end
                 @Threads.threads for r in 1:p.R÷p.nev# Realizations
-                    x = Threads.threadid()
-                    # Add disorder & detangle & project
-                    H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng[x])
-                    D = p.W[jj]*Diagonal(rand(rng[x], size(H,1)) .- 0.5)
-                    @views H_prj = project(U'*(H_dis + D)*U)
-                    droptol!(H_prj, 1E-12)
-
-                    #Shift-and-invert Lanczos method
-                    e_inv, psi, info = eigsolve(construct_linear_map(p.L^2 * Hermitian(H_prj .- E_c[jjj]*I(size(H_prj, 1)))), size(H_prj, 1),
-                        p.nev, :LM, ishermitian = true, krylovdim = max(30, 2p.nev + 1));
-                    e = 1 ./ (p.L^2 * real.(e_inv)) .+ E_c[jjj]
-                    psi = reduce(hcat, psi)
-
-                    #Crop energies that are outside the energy bins
-                    idx = findall(x -> (E_c[jjj] - E_del) <  x < (E_c[jjj] + E_del), e)
-                    @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 12), r = fill(r, length(idx)))
-
-                    #Push PN
-                    for k in 1:length(p.q)
-                        @views insertcols!(df_temp, q_str[k] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx, q = p.q[k]), sigdigits = 12))
+                    er = true
+                    er_num = 0
+                    while er
+                        if er_num == 3
+                            println("3 attempts faild.")
+                        end
+                        try
+                            x = Threads.threadid()
+                            H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng[x])
+                            D = p.W[jj]*Diagonal(rand(rng[x], size(H,1)) .- 0.5)
+                            @views H_prj = project(U'*(H_dis + D)*U)
+                            droptol!(H_prj, 1E-12)
+                            e_inv, psi, info = eigsolve(construct_linear_map(Hermitian(H_prj - E_c[jjj]*I(size(H_prj, 1)))), size(H_prj, 1),
+                                p.nev, :LM, ishermitian = true, krylovdim = max(30, 2p.nev + 1));
+                            e = 1 ./ (real.(e_inv)) .+ E_c[jjj]
+                            psi = reduce(hcat, psi)
+                            #Crop energies that are outside the energy bins
+                            idx = findall(x -> (E_c[jjj] - E_del) <  x < (E_c[jjj] + E_del), e)
+                            @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 12), r = fill(r, length(idx)))
+                            #Push PN
+                            for k in 1:length(p.q)
+                                @views insertcols!(df_temp, q_str[k] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx, q = p.q[k]), sigdigits = 12))
+                            end
+                            append!(df[x], df_temp)
+                            er = false
+                        catch
+                            println("There was an error")                            er += 1
+                            er += 1
+                            continue
+                        end
                     end
-                    append!(df[x], df_temp)
                 end
                 CSV.write(fn*"_W$(jj)_E$(jjj).csv", vcat(df...))
             end
