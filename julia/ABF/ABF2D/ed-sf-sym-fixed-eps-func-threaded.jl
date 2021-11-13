@@ -162,6 +162,9 @@ function abf3d_scan(p::Params)
         H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
         H = convert.(ComplexF64, H)
         for jj in 1:length(p.W)
+            DF_store = Array{DataFrame}(undef, length(p.θ), length(p.W), p.end_E_ind - p.start_E_ind + 1)
+            FN_store = Array{String}(undef, length(p.θ), length(p.W), p.end_E_ind - p.start_E_ind + 1)
+
             df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
             for t in 1:nt, k in 1:length(p.q)
                 insertcols!(df[t], q_str[k] => Float64[])
@@ -195,11 +198,7 @@ function abf3d_scan(p::Params)
                     end
                     append!(df[x], df_temp)
                 end
-                DF_store[j, jj, jjj - p.start_E_ind + 1] = vcat(df...)
-                FN_store[j, jj, jjj - p.start_E_ind + 1] = fn*"_W$(jj)_E$(jjj).csv"
-                for i in eachindex(DF_store) #save
-                    CSV.write(FN_store[i], DF_store[i])
-                end
+                CSV.write(fn*"_W$(jj)_E$(jjj).csv", vcat(df...))
             end
         end
     end
