@@ -175,7 +175,7 @@ function abf3d_scan(p::Params)
                     x = Threads.threadid()
                     # Add disorder & detangle & project
                     H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng[x])
-                    D = p.W[jj]*InvertedIndexagonal(rand(rng[x], size(H,1)) .- 0.5)
+                    D = p.W[jj]*Diagonal(rand(rng[x], size(H,1)) .- 0.5)
                     @views H_prj = project(U'*(H_dis + D)*U)
                     droptol!(H_prj, 1E-12)
 
