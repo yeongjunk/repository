@@ -170,12 +170,11 @@ function abf3d_scan(p::Params)
                     insertcols!(df[t], q_str[k] => Float64[])
                 end
                 @Threads.threads for r in 1:p.R÷p.nev# Realizations
+
                     er = true
                     er_num = 0
                     while er
-                        if er_num == 3
-                            println("3 attempts faild.")
-                        end
+                        if er_num == 3; error("3 attempts faild."); end
                         try
                             x = Threads.threadid()
                             H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng[x])
@@ -196,7 +195,7 @@ function abf3d_scan(p::Params)
                             append!(df[x], df_temp)
                             er = false
                         catch
-                            println("There was an error")                            er += 1
+                            println("There was an error")
                             er += 1
                             continue
                         end
