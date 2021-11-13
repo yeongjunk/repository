@@ -198,10 +198,7 @@ function abf3d_scan(p::Params)
                 end
                 DF_store[j, jj, jjj - p.start_E_ind + 1] = vcat(df...)
                 FN_store[j, jj, jjj - p.start_E_ind + 1] = fn*"_W$(jj)_E$(jjj).csv"
-                df = DataFrame(E = Float64[], r = Int64[])
-                for k in 1:length(p.q)
-                    insertcols!(df, q_str[k] => Float64[])
-                end
+
             end
         end
     end

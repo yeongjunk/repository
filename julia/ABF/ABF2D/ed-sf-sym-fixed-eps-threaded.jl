@@ -1,4 +1,4 @@
-using LinearAlgebra, SparseArrays, Arpack
+using LinearAlgebra, SparseArrays
 using LinearMaps
 using Random
 using DataFrames, CSV
