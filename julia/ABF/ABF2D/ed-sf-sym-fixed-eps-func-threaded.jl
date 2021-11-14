@@ -173,7 +173,7 @@ function abf3d_scan(p::Params)
                     er = true
                     er_num = 0
                     while er
-                        if er_num == 3; error("3 attempts faild."); end
+                        if er_num == 5; error("3 attempts faild."); end
                         try
                             x = Threads.threadid()
                             H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng[x])
@@ -193,8 +193,8 @@ function abf3d_scan(p::Params)
                             end
                             append!(df[x], df_temp)
                             er = false
-                        catch
-                            println("There was an error")
+                        catch e
+                            println("There was an error, ", e.msg)
                             er_num += 1
                             continue
                         end
