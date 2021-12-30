@@ -9,29 +9,29 @@ using LaTeXStrings
 ##
 marker = (:circle, 4, 1., stroke(-0.5, 1., :black))
 line = (:line, :solid, 1.5)
-# palette_roag = :Dark2_5
-# default(
-#     framestyle = :box,
-#     size = (600,400),
-#     # right_margin = [3mm 0mm],
-#     grid = false,
-#     minorticks = true,
-#     legend = (0.1, 0.75),
-#     fontfamily = "computer modern",
-#     tickfontsize = 13,
-#     guidefontsize = 13,
-#     legendfontsize = 13, palette = :default)
+palette_roag = :Dark2_5
+default(
+    framestyle = :box,
+    size = (600,400),
+    # right_margin = [3mm 0mm],
+    grid = false,
+    minorticks = true,
+    legend = (0.1, 0.75),
+    fontfamily = "computer modern",
+    tickfontsize = 13,
+    guidefontsize = 13,
+    legendfontsize = 13, palette = :default)
 
 len_W = 10
-L = [50 100 200]
+L = [50 100 200 300]
 # rdir = ["/Users/pcs/data/ABF-sum/2d-sf-sym-pn-2/L$(l)/" for l in L]
 # savedir = "/Users/pcs/data/ABF-sum/2d-sf-sym-pn-figs/"
 rdir = ["/Users/pcs/codes/project/julia/ABF/ABF2D/" for l in L]
-rdir = ["/Users/pcs/data/ABF-sum/2d-fe-clean-sym/" for l in L]
+# rdir = ["/Users/pcs/data/ABF-sum/2d-fe-clean-sym/" for l in L]
 savedir = "/Users/pcs/data/ABF-sum/2d-sf-sym-pn-figs/"
 
-# dir = ["L$(L[i])_Th1_W$(j)_E1.csv" for i in 1:length(L), j in 1:len_W]
-dir = ["L$(L[i])_Th1_W1_E$(j).csv" for i in 1:length(L), j in 1:len_W]
+dir = ["L$(L[i])_Th4_W$(j)_E1.csv" for i in 1:length(L), j in 1:len_W]
+# dir = ["L$(L[i])_Th4_W1_E$(j).csv" for i in 1:length(L), j in 1:len_W]
 
 ipr_mean = Array{Float64}(undef, len_W, length(L))
 ipr_std = similar(ipr_mean)

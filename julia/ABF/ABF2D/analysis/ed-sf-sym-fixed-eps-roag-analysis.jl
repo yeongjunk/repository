@@ -8,20 +8,20 @@ using LsqFit
 using LaTeXStrings
 using ROAG
 ##
-marker = (:circle, 4, 1., stroke(0, 1., :black))
-line = (:line, :solid, 1.5)
-palette_roag = :Dark2_5
-default(
-    framestyle = :box,
-    size = (600, 400),
-    # right_margin = [3mm 0mm],
-    grid = false,
-    minorticks = true,
-    # legend = (0.1, 0.75),
-    fontfamily = "computer modern",
-    tickfontsize = 13,
-    guidefontsize = 13,
-    legendfontsize = 13, palette = :default)
+# marker = (:circle, 4, 1., stroke(0, 1., :black))
+# line = (:line, :solid, 1.5)
+# palette_roag = :Dark2_5
+# default(
+#     framestyle = :box,
+#     size = (600, 400),
+#     # right_margin = [3mm 0mm],
+#     grid = false,
+#     minorticks = true,
+#     # legend = (0.1, 0.75),
+#     fontfamily = "computer modern",
+#     tickfontsize = 13,
+#     guidefontsize = 13,
+#     legendfontsize = 13, palette = :default)
 
 len_W = 20
 L = [50 100 200]
@@ -58,11 +58,12 @@ for i in 1:length(L)
     end
 end
 plotly()
+
 p = plot()
 for i in 1:length(L)
-    plot!(p, E_band, roag_mean, yerror = roag_ste, line = line, label = L"L = %$(L[i])%", dpi = 300, legend = false)
+    plot!(p, E_band[:, i], roag_mean[:, i], yerror = roag_ste)
 end
-xlabel!(L"E")
-ylabel!(L"\langle r \rangle")
+xlabel!("E")
+ylabel!("r")
 
 savefig(p, savedir*"roag.pdf")
