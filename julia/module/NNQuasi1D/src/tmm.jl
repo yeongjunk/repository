@@ -82,6 +82,8 @@ function tmm_bar(; M::T = 3, E::F = 0., W::F = 1., t::F = 1., rng = Random.GLOBA
         U .= U_dummy*U
         if i%N_qr == 0
             U_new, R = qr!(U)
+            Rs = sort(real.(R[diagind(R)]), rev = true)
+            if i > 1000; display(Rs); end
             U .= @view Matrix(U_new)[:, 1:Msq]
             ΣlnR += log(abs(R[end, end]))
         end

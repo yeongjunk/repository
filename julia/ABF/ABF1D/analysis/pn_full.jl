@@ -13,14 +13,13 @@ pushfirst!(E_edges,0.60)
 push!(E_edges,  1.4)
 
 ##
-dir = "/Users/pcs/data/ABF1D/onsite/"
+dir = "/Users/pcs/data/ABF-sum/1d-sf-on-pn/"
 savedir = "/Users/pcs/data/ABF1D/onsite/analyzed-data/"
 #
 ##
 function load_file(dir, i, j, L, R, θ)
-    subdir = "L$(L[i])/"
     fn = "L$(L[i])_Th$(j)_R$(R[i]).csv"
-    return Tables.columntable(CSV.read(dir*subdir*fn, DataFrame))
+    return Tables.columntable(CSV.read(dir*fn, DataFrame))
 end
 
 function pn_mean_binned(E::AbstractArray{T}, pn::AbstractArray{T}, E_edges::AbstractArray{T}) where T <: Number
@@ -57,6 +56,10 @@ end
 # 0.6 < E < 1.4 (slightly smaller than (1-W/2) and (1 + W/2). The midband is E = 1.
 ## ROAG for the midband: scaling of ROAG.
 pn_m_m, pn_m_std = pn_scan(dir = dir, L = L, R = R , θ = θ, E_edges = E_edges)
+pn_cls = 4*(1 .+ cospi.(2θ).^2).^(-2)
+plot(pn_cls, pn_m_m[end÷2+1, :, 1], legend = false)
+plot(θ, pn_m_m[end÷2, :, 1], legend = false)
+plot!(θ, pn_cls.*(1 .- 1.1θ), legend = false)
 
 pn_exp_fit = Array{Float64}(undef, length(E_edges)-1, length(θ))
 for i = 1:length(E_edges)-1, j = 1:length(θ)

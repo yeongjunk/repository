@@ -78,6 +78,22 @@ function redef1(ltc::Lattice1D)
     return sparse(I, J, V, num_sites, num_sites)
 end
 
+function redef1(ltc::Lattice1D, ϕ::Real)
+    num_sites = ltc.N*ltc.U
+    I = Int64[]; J = Int64[]; V = ComplexF64[]
+    c = exp(im*ϕ)
+    for n in 1:ltc.N
+        push!(I, index(ltc, (n, 1)))
+        push!(J, index(ltc, (n, 1)))
+        push!(V, 1)
+
+        push!(I, index(ltc, (n, 2)))
+        push!(J, index(ltc, (n + 1, 2)))
+        push!(V, c)
+    end
+    return sparse(I, J, V, num_sites, num_sites)
+end
+
 function U_fe(ltc::Lattice1D, θ::Real)
     U1 = LUT(ltc, θ)
     T1 = redef1(ltc)
@@ -93,6 +109,16 @@ end
 
 function ham_fe(ltc::Lattice1D, Ea::Real, Eb::Real, θ::Real, ϕ1::Real, ϕ2::Real)
     U = U_fe(ltc, θ, ϕ1, ϕ2)
+    H_fd = ham_fd(ltc, Ea, Eb)
+    H_fe = U*H_fd*U'
+    return H_fe, U
+end
+
+function ham_fe(ltc::Lattice1D, Ea::Real, Eb::Real, θ::Real, ϕ11::Real, ϕ12::Real, ϕ21::Real, ϕ22::Real, ϕ::Real)
+    U1 = LUT(ltc, θ, ϕ11, ϕ12)
+    T = redef1(ltc, ϕ)
+    U2 = LUT(ltc, θ, ϕ21, ϕ22)
+    U = U2*T*U1
     H_fd = ham_fd(ltc, Ea, Eb)
     H_fe = U*H_fd*U'
     return H_fe, U
