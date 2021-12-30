@@ -20,6 +20,16 @@ function ldiv2!(y, F, x)
     y .= F\x
 end
 
+function dis(N, W, rng)
+    arr = Vector{Float64}(undef, 4N)
+    d_arr = W*(rand(rng, 2N) .- 0.5)
+    for i in 1:N
+        arr[4(i-1) + 1:4(i-1)+1 + 1] = d_arr[2(i-1) + 1:2(i-1) + 1 + 1]
+        arr[4(i-1) + 1 + 2:4(i-1) + 1 + 3] = d_arr[2(i-1) + 1:2(i-1) + 1 + 1]
+    end
+    return arr
+end
+
 function box_inds(ltc, b)
     L = ltc.M
     U = ltc.U
@@ -192,7 +202,7 @@ function abf3d_scan(p::Params)
                         try
                             x = Threads.threadid()
                             H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng[x])
-                            D = p.W[jj]*Diagonal(rand(rng[x], size(H,1)) .- 0.5)
+                            D = dis(p.L, p.W[jj], rng)
                             @views H_prj = project(U'*(H_dis + D)*U)
                             droptol!(H_prj, 1E-12)
                             e_inv, psi, info = eigsolve(construct_linear_map(p.L^2*Hermitian(H_prj - E_c[jjj]*I(size(H_prj, 1)))), size(H_prj, 1),
