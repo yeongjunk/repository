@@ -16,6 +16,7 @@ struct Params
     E_min::Float64
     E_max::Float64
     E_bin_width::Int64
+    num_blas::Int64
 end
 
 function readconfig(config::Dict)
@@ -54,9 +55,11 @@ function readconfig(config::Dict)
         end_E_ind = config["end_E_ind"]
     end
 
+    num_blas = haskey(config, "num_blas") ? config["num_blas"] : 1
+
     return Params(config["l"], config["L"], θ, seed, config["R"], q,
         config["E_num"],
         start_E_ind, end_E_ind, W,
         config["V1"], config["V2"], config["nev"], config["bw_auto"],
-        E_min, E_max, E_bin_width)
+        E_min, E_max, E_bin_width, num_blas)
 end

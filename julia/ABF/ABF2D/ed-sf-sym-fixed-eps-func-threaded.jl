@@ -144,7 +144,7 @@ function estimate_bw(p, θ, W, L, rng)
     H, U = ham_fe(ltc, -2, 0, θ) # Fully entangled hamiltonian
     H = convert.(ComplexF64, H)
     H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng)
-    D = W*Diagonal(rand(rng, size(H,1)) .- 0.5)
+    D = Diagonal(dis(p.L^2, W, rng))
     @views H_prj = project(U'*(H_dis + D)*U)
     vals, psi, info = eigsolve(Hermitian(H_prj), size(H_prj, 1), 1, :LM, ishermitian = true, krylovdim = 30)
     return 2*abs(maximum(vals))
@@ -158,13 +158,34 @@ end
 # E_bin_width: portion given by 1/E_bin_width of the small energy window around energy center.
 # rng: random number generator
 # """
-function estimate_energy_params(p, θ, W, L, E_crop, E_bin_width, rng)
+function auto_energy_params(p, θ, W, L, E_crop, E_bin_width, rng)
     BW = estimate_bw(p, θ, W, L, rng)
     E_c = range(0.0001, BW/2*E_crop, length = p.E_num)
     E_del = (E_c[2] - E_c[1])/E_bin_width
     return BW, E_c, E_del
 end
 
+function energy_param_generator(p, θ, W, L, E_crop, E_bin_width, rng)
+    if p.bw_auto
+        BW, E_c, E_del = auto_energy_params(p, θ, W, L, E_crop, E_bin_width, rng)
+    else
+        BW = p.E_max - p.E_min
+        E_c = range(p.E_min, p.E_max, length = p.E_num)
+        E_del = (E_c[2] - E_c[1])/p.E_bin_width
+    end
+    return BW, E_c, E_del
+end
+
+function print_info(nt, BW, E_c, E_del, p)
+    println("Number of BLAS threads: ",LinearAlgebra.BLAS.get_num_threads())
+    println("Number of threads: $(nt)")
+    println("Realization / nev: ", p.R/p.nev)
+    println("Auto bandwidth settings: ", p.bw_auto)
+    println("Bandwidth estimated: $(BW)")
+    println("Energy centers: ", E_c)
+    println("Energy bin width: $(E_del)")
+    println("Thetas: ", p.θ)
+end
 
 function abf3d_scan(p::Params)
     q_str = "q".*string.(p.q)
@@ -178,17 +199,8 @@ function abf3d_scan(p::Params)
         H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
         H = convert.(ComplexF64, H)
         for jj in 1:length(p.W)
-            if p.bw_auto
-                BW, E_c, E_del = estimate_energy_params(p, p.θ[j], p.W[jj], 50, 0.9, 8, rng[1])
-            else
-                BW = p.E_max - p.E_min
-                E_c = range(p.E_min, p.E_max, length = p.E_num)
-                E_del = (E_c[2] - E_c[1])/p.E_bin_width
-            end
-
-            println("Number of threads: $(nt)")
-            println("Bandwidth estimated: $(BW)")
-            println("Energy bin width: $(E_del)")
+            BW, E_c, E_del = energy_param_generator(p, p.θ[j], p.W[jj], 50, 0.9, 8, rng[1])
+            print_info(nt, BW, E_c, E_del, p)
             for jjj in p.start_E_ind:p.end_E_ind
                 df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
                 for t in 1:nt, k in 1:length(p.q)
@@ -198,11 +210,11 @@ function abf3d_scan(p::Params)
                     er = true
                     er_num = 0
                     while er
-                        if er_num == 5; error("3 attempts faild."); end
+                        if er_num == 5; error("5 attempts faild."); end
                         try
                             x = Threads.threadid()
                             H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng[x])
-                            D = dis(p.L, p.W[jj], rng)
+                            D = Diagonal(dis(p.L^2, p.W[jj], rng[x]))
                             @views H_prj = project(U'*(H_dis + D)*U)
                             droptol!(H_prj, 1E-12)
                             e_inv, psi, info = eigsolve(construct_linear_map(p.L^2*Hermitian(H_prj - E_c[jjj]*I(size(H_prj, 1)))), size(H_prj, 1),
