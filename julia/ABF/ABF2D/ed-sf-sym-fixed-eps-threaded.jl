@@ -23,7 +23,6 @@ function main(ARGS)
     p = readconfig(config)
 
     LinearAlgebra.BLAS.set_num_threads(p.num_blas)
-
     @time abf3d_scan(p)
 end
 
