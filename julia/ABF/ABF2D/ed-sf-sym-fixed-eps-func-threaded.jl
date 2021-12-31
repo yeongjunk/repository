@@ -144,11 +144,12 @@ function estimate_bw(p, θ, W, L, rng)
     H, U = ham_fe(ltc, -2, 0, θ) # Fully entangled hamiltonian
     H = convert.(ComplexF64, H)
     H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng)
-    D = Diagonal(dis(p.L^2, W, rng))
+    D = Diagonal(dis(L^2, W, rng))
     @views H_prj = project(U'*(H_dis + D)*U)
     vals, psi, info = eigsolve(Hermitian(H_prj), size(H_prj, 1), 1, :LM, ishermitian = true, krylovdim = 30)
     return 2*abs(maximum(vals))
 end
+
 # @doc"""
 # p: Params
 # θ: angle
