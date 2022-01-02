@@ -177,6 +177,7 @@ function energy_param_generator(p, θ, W, L, E_crop, E_bin_width, rng)
             BW = estimate_bw(p, θ, W, L, rng)
             E_c = p.E_min
             E_del = BW/p.E_bin_width
+        end
     end
     return BW, E_c, E_del
 end
