@@ -71,6 +71,5 @@ end
 xlabel!(L"E");
 ylabel!(L"\tilde{\tau}")
 
-df = DataFrame(E = E[:, 1], tau = τ[:, 1])
 # CSV.write(savedir*"clean_W0.01.csv", df)
 # savefig(p, savedir*"clean_W0.01.pdf")
