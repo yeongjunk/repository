@@ -169,11 +169,11 @@ function energy_param_generator(p, θ, W, L, E_crop, E_bin_width, rng)
     if p.bw_auto
         BW, E_c, E_del = auto_energy_params(p, θ, W, L, E_crop, E_bin_width, rng)
     else
-        if E_num != 1
+        if p.E_num != 1
             BW = p.E_max - p.E_min
             E_c = range(p.E_min, p.E_max, length = p.E_num)
             E_del = (E_c[2] - E_c[1])/p.E_bin_width
-        elseif E_num == 1
+        elseif p.E_num == 1
             BW = estimate_bw(p, θ, W, L, rng)
             E_c = p.E_min
             E_del = BW/p.E_bin_width
