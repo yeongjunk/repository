@@ -2,19 +2,22 @@ struct Params
     l::Int64
     L::Int64
     θ::Vector{Float64}
+    W::Vector{Float64}
+    E::Vector{Float64}
+    q::Vector{Int64}
+
     seed::Int64
     R::Int64
-    q::Vector{Int64}
-    E_num::Int64
-    start_E_ind::Int64
-    end_E_ind::Int64
-    W::Vector{Float64}
+    nev::Int64
+
+    th_ind_range::Vector{Int64}
+    W_ind_range::Vector{Int64}
+    E_ind_range::Vector{Int64}
+
     V1::Float64
     V2::Float64
-    nev::Int64
     bw_auto::Bool
-    E_min::Float64
-    E_max::Float64
+
     E_bin_width::Int64
     num_blas::Int64
 end
@@ -24,42 +27,44 @@ function readconfig(config::Dict)
     seed = config["seed"]
     q = isa(config["q"], AbstractArray) ? Array{Int64}(config["q"]) : Array{Int64}([config["q"]])
     W = range(config["W"][1], config["W"][2], length = config["W"][3])
-    if config["start_E_ind"] < 1 && config["end_E_ind"] > length(E_c)
-        error("Invalid Parameter value: invalid energy index")
+    E = range(config["E"][1], config["E"][2], length = config["E"][3])
+
+    #-----------Energy scan parameters----------#
+    if haskey(config, "E_ind_range")
+        if length(config["E_ind_range"]) != 2
+            error("Energy index range should be a length 2 vector. [start, end]")
+        else
+            E_ind_range = config["E_ind_range"]
+        end
+    else
+        E_ind_range = [1, config["E_num"]]
     end
 
-    #-----Bandwidth parameters-------#
-    if haskey(config, "bw_auto")
-        bw_auto = config["bw_auto"]
+    #-----------Theta scan parameters----------#
+    if haskey(config, "th_ind_range")
+        if length(config["th_ind_range"]) != 2
+            error("Theta index range should be a length 2 vector. [start, end]")
+        else
+            th_ind_range = config["th_ind_range"]
+        end
     else
-        bw_auto = true
+        th_ind_range = [1, length(θ)]
     end
 
-    if bw_auto == false
-        E_min, E_max, E_bin_width = Float64(config["E_min"]), Float64(config["E_max"]), Int64(config["E_bin_width"])
+    #-----------W scan parameters----------#
+    if haskey(config, "W_ind_range")
+        if length(config["W_ind_range"]) != 2
+            error("W index range should be a length 2 vector. [start, end]")
+        else
+            W_ind_range = config["W_ind_range"]
+        end
     else
-        E_min, E_max, E_bin_width = 0., 0., 0
-    end
-    #-----------Energy scan parameters handling----------#
-    if haskey(config, "start_E_ind") && !haskey(config, "end_E_ind")
-        start_E_ind = config["start_E_ind"]
-        end_E_ind = config["E_num"]
-    elseif !haskey(config, "start_E_ind") && haskey(config, "end_E_ind")
-        start_E_ind = 1
-        end_E_ind = config["end_E_ind"]
-    elseif !haskey(config, "start_E_ind") && !haskey(config, "end_E_ind")
-        start_E_ind = 1
-        end_E_ind = config["E_num"]
-    else
-        start_E_ind = config["start_E_ind"]
-        end_E_ind = config["end_E_ind"]
+        W_ind_raange = [1, length(W)]
     end
 
     num_blas = haskey(config, "num_blas") ? config["num_blas"] : 1
 
-    return Params(config["l"], config["L"], θ, seed, config["R"], q,
-        config["E_num"],
-        start_E_ind, end_E_ind, W,
-        config["V1"], config["V2"], config["nev"], config["bw_auto"],
-        E_min, E_max, E_bin_width, num_blas)
+    return Params(config["l"], config["L"], θ, W, E, q, seed, config["R"], config["nev"],
+        th_ind_range, W_ind_range, E_ind_range, config["V1"], config["V2"],
+        config["bw_auto"], config["E_bin_width"], num_blas)
 end

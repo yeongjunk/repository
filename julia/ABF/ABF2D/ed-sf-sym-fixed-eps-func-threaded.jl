@@ -160,7 +160,7 @@ end
 # """
 function auto_energy_params(p, θ, W, L, E_crop, E_bin_width, rng)
     BW = estimate_bw(p, θ, W, L, rng)
-    E_c = range(0.0001, BW/2*E_crop, length = p.E_num)
+    E_c = range(0.0001, BW/2*E_crop, length = length(p.E))
     E_del = (E_c[2] - E_c[1])/E_bin_width
     return BW, E_c, E_del
 end
@@ -169,13 +169,13 @@ function energy_param_generator(p, θ, W, L, E_crop, E_bin_width, rng)
     if p.bw_auto
         BW, E_c, E_del = auto_energy_params(p, θ, W, L, E_crop, E_bin_width, rng)
     else
-        if p.E_num != 1
-            BW = p.E_max - p.E_min
-            E_c = range(p.E_min, p.E_max, length = p.E_num)
+        if length(p.E) != 1
+            BW = p.E[end] - p.E[1]
+            E_c = p.E
             E_del = (E_c[2] - E_c[1])/p.E_bin_width
-        elseif p.E_num == 1
+        elseif length(p.E) == 1
             BW = estimate_bw(p, θ, W, L, rng)
-            E_c = p.E_min
+            E_c = p.E[1]
             E_del = BW/p.E_bin_width
         end
     end
@@ -200,14 +200,14 @@ function abf3d_scan(p::Params)
     ltc = Lattice2D(p.L, p.L, 4)
     ltc_p = Lattice2D(p.L, p.L, 2)
     boxidx = box_inds(ltc_p, p.l)
-    for j in 1:length(p.θ)
+    for j in p.th_ind_range[1]:p.th_ind_range[2]
         fn = "L$(p.L)_Th$(j)" #File name
         H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
         H = convert.(ComplexF64, H)
-        for jj in 1:length(p.W)
+        for jj in p.W_ind_range[1]:p.W_ind_range[2]
             BW, E_c, E_del = energy_param_generator(p, p.θ[j], p.W[jj], 50, 0.9, 8, rng[1])
             print_info(nt, BW, E_c, E_del, p)
-            for jjj in p.start_E_ind:p.end_E_ind
+            for jjj in p.E_ind_range[1]:p.E_ind_range[2]
                 df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
                 for t in 1:nt, k in 1:length(p.q)
                     insertcols!(df[t], q_str[k] => Float64[])
@@ -237,7 +237,7 @@ function abf3d_scan(p::Params)
                             append!(df[x], df_temp)
                             er = false
                         catch e
-                            println("There was an error, ", e.msg)
+                            println("There was an error: ", e.msg)
                             er_num += 1
                             continue
                         end

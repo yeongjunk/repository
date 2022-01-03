@@ -22,52 +22,42 @@ default(
     guidefontsize = 13,
     legendfontsize = 13, palette = :default)
 
-len_W = 10
+len_W = 1
+len_E = 1
+len_th = 10
 L = [50 100 150]
-# rdir = ["/Users/pcs/data/ABF-sum/2d-sf-sym-pn-2/L$(l)/" for l in L]
-# savedir = "/Users/pcs/data/ABF-sum/2d-sf-sym-pn-figs/"
-rdir = ["/Users/pcs/data/ABF2D/symplectic/delta1/L$l/1/" for l in L]
-# rdir = ["/Users/pcs/data/ABF-sum/2d-fe-clean-sym/" for l in L]
+
+rdir = ["/Users/pcs/data/ABF2D/symplectic/delta1_e0/L$l/1/" for l in L]
 savedir = "/Users/pcs/data/ABF-sum/2d-sf-sym-pn-figs/"
 
-#dir = ["L$(L[i])_Th4_W$(j)_E1.csv" for i in 1:length(L), j in 1:len_W]
-θ = 1:4
-dir = ["L$(L[i])_Th$(k)_W1_E$(j).csv" for i in 1:length(L),k in 1:length(θ), j in 1:len_W]
-ipr_mean = Array{Float64}(undef, len_W, length(L), length(θ))
+dir = ["L$(L[i])_Th$(j)_W$(k)_E$(l).csv" for i in 1:length(L), j in 1:len_th, k in 1:len_W, l in 1:len_E]
+ipr_mean = Array{Float64}(undef, length(L), len_th, len_W, len_E)
 ipr_std = similar(ipr_mean)
 ipr_ste = similar(ipr_mean)
 E = similar(ipr_mean)
-for i in 1:length(L)
-    for k in 1:length(θ)
-        for j in 1:len_W
-            df = CSV.read(rdir[i]*dir[i, k, j], DataFrame)
-            ipr_mean[j, i, k] = mean(df.q2)
-            E[j, i, k] = mean(df.E)
-            ipr_std[j, i, k] = std(df.q2)
-            ipr_ste[j, i, k] = ipr_std[j, i, k] / sqrt(length(df.E))
-        end
-    end
+for i in 1:length(L), j in 1:len_th, k in 1:len_W, l in 1:len_E
+    df = CSV.read(rdir[i]*dir[i, j, k, l], DataFrame)
+    ipr_mean[i,j, k,l] = mean(df.q2)
+    E[i, j, k, l] = mean(df.E)
+    ipr_std[i, j, k, l] = std(df.q2)
+    ipr_ste[i, j, k, l] = ipr_std[i, j, k, l] / sqrt(length(df.E))
 end
 
-plot(ipr_mean[:,:, 2], yerror = ipr_ste[:, :, 2])
+plot(ipr_mean[:, :, 1, 1], yerror = ipr_ste[: ,:, 1, 1])
 
 τ = similar(ipr_mean)
 τ_err = similar(ipr_mean)
 τ_std = similar(ipr_mean)
 
-for i in 1:length(L)
-    for j in 1:length(θ)
-    τ[:, i, j] = log.(ipr_mean[:, i, j]) ./ log(0.05)
-    τ_err[:, i, j] = abs.(ipr_ste[:, i, j] ./ ipr_mean[:,i, j] ./ log(0.05))
-    τ_std[:, i, j] = abs.(ipr_std[:, i, j] ./ ipr_mean[:,i, j] ./ log(0.05))
-    end
+for i in 1:length(L), j in 1:len_th, k in 1:len_W, l in 1:len_E
+    τ[i, j, k, l] = log.(ipr_mean[i, j, k, l]) ./ log(0.05)
+    τ_err[i, j, k, l] = abs.(ipr_ste[i, j, k, l] ./ ipr_mean[i, j, k, l] ./ log(0.05))
+    τ_std[i, j, k, l] = abs.(ipr_std[i, j, k, l] ./ ipr_mean[i, j, k, l] ./ log(0.05))
 end
 
 j = 2
-p = plot(legend = :bottomleft);
-for i in 1:length(L)
-    plot!(p, E[:, i, j], τ[:, i, j], yerror = τ_err[:, :, j], line = line, label = L"$L = %$(L[i])$")
-end
+p = plot(legend = :bottomright);
+plot!(p, τ[:, :,  1, 1]', yerror = τ_err[:, :, 1, 1]')
 xlabel!(L"E");
 ylabel!(L"\tilde{\tau}")
 
