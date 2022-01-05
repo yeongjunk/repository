@@ -175,7 +175,7 @@ function energy_param_generator(p, θ, W, L, E_crop, E_bin_width, rng)
             E_del = (E_c[2] - E_c[1])/p.E_bin_width
         elseif length(p.E) == 1
             BW = estimate_bw(p, θ, W, L, rng)
-            E_c = p.E[1]
+            E_c = p.E[1] + 1E-12
             E_del = BW/p.E_bin_width
         end
     end
@@ -193,13 +193,17 @@ function print_info(nt, BW, E_c, E_del, p)
     println("Thetas: ", p.θ)
 end
 
+function generate_col_names(p::Params)
+    return ["l"*string(li)*"_q"*string(qi) for li in p.l, qi in p.q]
+end
+
 function abf3d_scan(p::Params)
-    q_str = "q".*string.(p.q)
+    col_str = generate_col_names(p)
     nt = Threads.nthreads()
     rng = [MersenneTwister(p.seed + i) for i in 1:nt]
     ltc = Lattice2D(p.L, p.L, 4)
     ltc_p = Lattice2D(p.L, p.L, 2)
-    boxidx = box_inds(ltc_p, p.l)
+    boxidx = [box_inds(ltc_p, li) for li in p.l]
     for j in p.th_ind_range[1]:p.th_ind_range[2]
         fn = "L$(p.L)_Th$(j)" #File name
         H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
@@ -209,30 +213,31 @@ function abf3d_scan(p::Params)
             print_info(nt, BW, E_c, E_del, p)
             for jjj in p.E_ind_range[1]:p.E_ind_range[2]
                 df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
-                for t in 1:nt, k in 1:length(p.q)
-                    insertcols!(df[t], q_str[k] => Float64[])
+                for t in 1:nt, k in 1:length(p.l), kk in 1:length(p.q)
+                    insertcols!(df[t], col_str[k, kk] => Float64[])
                 end
                 @Threads.threads for r in 1:p.R÷p.nev# Realizations
                     er = true
                     er_num = 0
                     while er
-                        if er_num == 5; error("5 attempts faild."); end
+                        er_num == 5 && error("5 attempts faild.")
                         try
                             x = Threads.threadid()
                             H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng[x])
                             D = Diagonal(dis(p.L^2, p.W[jj], rng[x]))
                             @views H_prj = project(U'*(H_dis + D)*U)
                             droptol!(H_prj, 1E-12)
-                            e_inv, psi, info = eigsolve(construct_linear_map(p.L^2*Hermitian(H_prj - E_c[jjj]*I(size(H_prj, 1)))), size(H_prj, 1),
+                            e_inv, psi, info = eigsolve(construct_linear_map(Hermitian(p.L^2*(H_prj - E_c[jjj]*I(size(H_prj, 1))))), size(H_prj, 1),
                                 p.nev, :LM, ishermitian = true, krylovdim = max(30, 2p.nev + 1));
                             e = 1 ./ (p.L^2*real.(e_inv)) .+ E_c[jjj]
                             psi = reduce(hcat, psi)
+
                             #Crop energies that are outside the energy bins
                             idx = findall(x -> (E_c[jjj] - E_del) <  x < (E_c[jjj] + E_del), e)
-                            @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 12), r = fill(r, length(idx)))
+                            @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 10), r = fill(r, length(idx)))
                             #Push PN
-                            for k in 1:length(p.q)
-                                @views insertcols!(df_temp, q_str[k] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx, q = p.q[k]), sigdigits = 12))
+                            for k in 1:length(p.l), kk in 1:length(p.q)
+                                @views insertcols!(df_temp, col_str[k, kk] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx[k], q = p.q[kk]), sigdigits = 10))
                             end
                             append!(df[x], df_temp)
                             er = false

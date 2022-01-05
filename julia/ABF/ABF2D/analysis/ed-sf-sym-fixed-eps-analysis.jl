@@ -6,32 +6,33 @@ using Glob
 using Plots
 using LsqFit
 using LaTeXStrings
+using Plots.PlotMeasures
 ##
 marker = (:circle, 4, 1., stroke(-0.5, 1., :black))
 line = (:line, :solid, 1.5)
-# palette_roag = :Dark2_5
-# default(
-#     framestyle = :box,
-#     size = (600,400),
-#     # right_margin = [3mm 0mm],
-#     grid = false,
-#     minorticks = true,
-#     legend = (0.1, 0.75),
-#     fontfamily = "computer modern",
-#     tickfontsize = 13,
-#     guidefontsize = 13,
-#     legendfontsize = 13, palette = :default)
+palette_roag = :Dark2_5
+default(
+    framestyle = :box,
+    size = (600,400),
+    # right_margin = [3mm 0mm],
+    grid = false,
+    minorticks = true,
+    legend = (0.1, 0.75),
+    fontfamily = "computer modern",
+    tickfontsize = 15,
+    guidefontsize = 20,
+    legendfontsize = 15, palette = :default,
+    bottommargin = 2mm)
 
-len_W = 10
-L = [50 100 200]
-# rdir = ["/Users/pcs/data/ABF-sum/2d-sf-sym-pn-2/L$(l)/" for l in L]
+len_W = 20
+L = [50 100 200 300]
+rdir = ["/Users/pcs/data/ABF-sum/raw-data/2d-sf-pure-sym-pn/L$(l)/" for l in L]
 # savedir = "/Users/pcs/data/ABF-sum/2d-sf-sym-pn-figs/"
-rdir = ["/Users/pcs/codes/project/julia/ABF/ABF2D/" for l in L]
-rdir = ["/Users/pcs/data/ABF-sum/2d-fe-clean-sym/" for l in L]
-savedir = "/Users/pcs/data/ABF-sum/2d-sf-sym-pn-figs/"
+savedir = "/Users/pcs/data/ABF-sum/processed-processed-data/2d-sf-sym-pn-figs/"
 
 # dir = ["L$(L[i])_Th1_W$(j)_E1.csv" for i in 1:length(L), j in 1:len_W]
-dir = ["L$(L[i])_Th1_W1_E$(j).csv" for i in 1:length(L), j in 1:len_W]
+th_idx = 4
+dir = ["L$(L[i])_Th$(th_idx)_W1_E$(j).csv" for i in 1:length(L), j in 1:len_W]
 
 ipr_mean = Array{Float64}(undef, len_W, length(L))
 ipr_std = similar(ipr_mean)
@@ -66,6 +67,9 @@ end
 xlabel!(L"E");
 ylabel!(L"\tilde{\tau}")
 
+p2 = plot(1 ./vec(L), τ[1, :], yerror = τ_err[1, :],legend = false)
+xlabel!(L"1/L"); ylabel!(L"\tilde{\tau}")
+
 df = DataFrame(E = E[:, 1], tau = τ[:, 1])
-CSV.write(savedir*"clean_W0.01.csv", df)
-savefig(p, savedir*"clean_W0.01.pdf")
+savefig(p, savedir*"Fig1_th$(th_idx).pdf")
+savefig(p2, savedir*"Fig2_th$(th_idx).pdf")

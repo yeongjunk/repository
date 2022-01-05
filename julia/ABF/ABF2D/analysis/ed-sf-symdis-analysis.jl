@@ -18,9 +18,9 @@ default(
     minorticks = true,
     legend = (0.1, 0.75),
     fontfamily = "computer modern",
-    tickfontsize = 13,
-    guidefontsize = 13,
-    legendfontsize = 13, palette = :default)
+    tickfontsize = 15,
+    guidefontsize = 20,
+    legendfontsize = 15, palette = :default)
 
 len_W = 10
 L = [50 100 200 300]

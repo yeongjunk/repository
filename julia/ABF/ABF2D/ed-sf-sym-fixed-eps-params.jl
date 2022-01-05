@@ -1,5 +1,5 @@
 struct Params
-    l::Int64
+    l::Array{Int64}
     L::Int64
     θ::Vector{Float64}
     W::Vector{Float64}
@@ -62,9 +62,14 @@ function readconfig(config::Dict)
         W_ind_raange = [1, length(W)]
     end
 
+    if typeof(config["l"]) <: Integer
+        l = [config["l"]];
+    else
+        l = config["l"]
+    end
     num_blas = haskey(config, "num_blas") ? config["num_blas"] : 1
 
-    return Params(config["l"], config["L"], θ, W, E, q, seed, config["R"], config["nev"],
+    return Params(l, config["L"], θ, W, E, q, seed, config["R"], config["nev"],
         th_ind_range, W_ind_range, E_ind_range, config["V1"], config["V2"],
         config["bw_auto"], config["E_bin_width"], num_blas)
 end
