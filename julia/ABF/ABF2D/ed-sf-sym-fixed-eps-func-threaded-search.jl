@@ -33,14 +33,14 @@ end
 function box_inds(ltc, b)
     L = ltc.M
     U = ltc.U
-    box_pts = b^2
-    box_num = U*L^2 ÷ b^2
+    box_pts = U*b^2
+    box_num = L^2 ÷ b^2
 
     inds = Array{Int64}(undef, box_pts, box_num)
     box_count = 1
-    for y in 1:b:(L-b+1), z in 1:b:(L-b+1), u in 1:U
-        for m in 0:b-1, n in 0:b-1
-            inds[b*m + n + 1, box_count] = index(ltc, (y + m, z + n, u))
+    for y in 1:b:(L-b+1), z in 1:b:(L-b+1)
+        for m in 0:b-1, n in 0:b-1, u in 1:U
+            inds[2b*m + 2*n + u, box_count] = index(ltc, (y + m, z + n, u))
         end
         box_count += 1
     end
