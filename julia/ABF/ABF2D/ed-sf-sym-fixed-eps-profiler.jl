@@ -8,9 +8,9 @@ using ABFSym
 using Lattice
 using PN
 LinearAlgebra.BLAS.set_num_threads(1)
-
-include("./ed-sf-sym-fixed-eps-func-threaded.jl") # read parameters from configuration file
-config  = JSON.parsefile("ed-sf-sym-fixed-eps-config")
+rdir = @__DIR__
+include("./ed-sf-sym-fixed-eps-func-threaded-search.jl") # read parameters from configuration file
+config  = JSON.parsefile(rdir*"/sym-config2")
 p = readconfig(config)
 
-@time abf3d_scan(p)
+@profiler abf3d_scan(p)

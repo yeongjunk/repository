@@ -10,7 +10,7 @@ using LaTeXStrings
 
 ##
 L = [20 30 40 50 60]
-rdir = "/Users/pcs/data/ABF-sum/3d-sf-on-pn-roag/par-ipr-fix-eps/"
+rdir = "/Users/pcs/data/ABF-sum/raw-data/3d-sf-on-pn-roag/par-ipr-fix-eps/"
 dir = [rdir*"L$(L[i])/" for i in 1:length(L)]
 
 # k = 5

@@ -198,6 +198,26 @@ function generate_col_names(p::Params)
     return ["l"*string(li)*"_q"*string(qi) for li in p.l, qi in p.q]
 end
 
+function missing_idx_finder(p::Params)
+    idcs = Tuple{Int64, Int64, Int64}[]
+    lists = glob("L*_Th*_W*_E*.csv")
+    miss_idx = (0, 0, 0)
+    for i in 1:length(lists)
+        fn = split(split(lists[i], ".")[1], "_")
+        x = parse(Int64, replace(fn[2], "Th"=>""))
+        y = parse(Int64, replace(fn[3], "W"=>""))
+        z = parse(Int64, replace(fn[4], "E"=>""))
+        push!(idcs, (x, y, z))
+    end
+    for l in 1:length(p.θ), m in 1:length(p.W), n in 1:length(p.E)
+        if length(findall(x -> x == (l, m, n), idcs)) == 0
+            miss_idx = (l, m ,n)
+            break
+        end
+    end
+    return miss_idx
+end
+
 function abf3d_scan(p::Params)
     col_str = generate_col_names(p)
     nt = Threads.nthreads()
@@ -206,31 +226,13 @@ function abf3d_scan(p::Params)
     ltc_p = Lattice2D(p.L, p.L, 2)
     boxidx = [box_inds(ltc_p, li) for li in p.l]
     while true
-        idcs = Tuple{Int64, Int64, Int64}[]
-        lists = glob("*.csv")
-        for i in 1:length(lists)
-            fn = split(split(lists[i], ".")[1], "_")
-            x = parse(Int64, replace(fn[2], "Th"=>""))
-            y = parse(Int64, replace(fn[3], "W"=>""))
-            z = parse(Int64, replace(fn[4], "E"=>""))
-            push!(idcs, (x, y, z))
-        end
-        current_scan_idx = (0, 0, 0)
-        for l in 1:length(p.θ), m in 1:length(p.W), n in 1:length(p.E)
-            if length(findall(x -> x == (l, m, n), idcs)) == 0
-                CSV.write("L$(p.L)_Th$(l)_W$(m)_E$(n)_temp.csv", DataFrame())
-                current_scan_idx = (l, m ,n)
-                println("found missing index")
-                break
-            end
-        end
-        if current_scan_idx == (0, 0, 0)
-            println("It seems that scan is finished. Terminated")
+        j, jj, jjj = missing_idx_finder(p)
+        if (j, jj, jjj) == (0, 0, 0)
+            println("It seems that scan is finished. The scan will be terminated.")
             break
         end
-
-        j, jj, jjj = current_scan_idx
-        println("start scanning at index", current_scan_idx)
+        CSV.write("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp.csv", DataFrame())
+        println("start scanning at index: ", (j, jj, jjj))
         H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
         H = convert.(ComplexF64, H)
         BW, E_c, E_del = energy_param_generator(p, p.θ[j], p.W[jj], 50, 0.9, 8, rng[1])

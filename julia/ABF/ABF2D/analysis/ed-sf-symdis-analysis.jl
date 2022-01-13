@@ -23,14 +23,13 @@ default(
     legendfontsize = 15, palette = :default)
 
 len_W = 10
-L = [50 100 200 300]
-# rdir = ["/Users/pcs/data/ABF-sum/2d-sf-sym-pn-2/L$(l)/" for l in L]
-# savedir = "/Users/pcs/data/ABF-sum/2d-sf-sym-pn-figs/"
-rdir = ["/Users/pcs/codes/project/julia/ABF/ABF2D/" for l in L]
-# rdir = ["/Users/pcs/data/ABF-sum/2d-fe-clean-sym/" for l in L]
-savedir = "/Users/pcs/data/ABF-sum/2d-sf-sym-pn-figs/"
+L = [50 100 200]
+# rdir = ["/Users/pcs/data/ABF-sum/raw-data/2d-sf-pure-sym-pn/" for l in L]
+rdir = ["/Users/pcs/codes/project/julia/ABF/ABF2D/symdis/" for l in L]
 
-dir = ["L$(L[i])_Th4_W$(j)_E1.csv" for i in 1:length(L), j in 1:len_W]
+savedir = "/Users/pcs/data/ABF-sum/2d-sf-pure-sym-pn-figs/"
+
+dir = ["L$(L[i])_Th1_W1_E$(j).csv" for i in 1:length(L), j in 1:len_W]
 # dir = ["L$(L[i])_Th4_W1_E$(j).csv" for i in 1:length(L), j in 1:len_W]
 
 ipr_mean = Array{Float64}(undef, len_W, length(L))
@@ -40,9 +39,9 @@ E = similar(ipr_mean)
 for i in 1:length(L)
     for j in 1:len_W
         df = CSV.read(rdir[i]*dir[i, j], DataFrame)
-        ipr_mean[j, i] = mean(df.q2)
+        ipr_mean[j, i] = mean(df[:, "l1_q2"])
         E[j, i] = mean(df.E)
-        ipr_std[j, i] = std(df.q2)
+        ipr_std[j, i] = std(df[:, "l1_q2"])
         ipr_ste[j, i] = ipr_std[j, i] / sqrt(length(df.E))
     end
 end
@@ -54,9 +53,9 @@ plot(ipr_mean, yerror = ipr_ste)
 τ_std = similar(ipr_mean)
 
 for i in 1:length(L)
-    τ[:, i] = log.(ipr_mean[:, i]) ./ log(0.05)
-    τ_err[:, i] = abs.(ipr_ste[:, i] ./ ipr_mean[:,i] ./ log(0.05))
-    τ_std[:, i] = abs.(ipr_std[:, i] ./ ipr_mean[:,i] ./ log(0.05))
+    τ[:, i] = log.(ipr_mean[:, i]) ./ log(1/L[i])
+    τ_err[:, i] = abs.(ipr_ste[:, i] ./ ipr_mean[:,i] ./ log(1/L[i]))
+    τ_std[:, i] = abs.(ipr_std[:, i] ./ ipr_mean[:,i] ./ log(1/L[i]))
 end
 
 p = plot(legend = :bottomleft);
