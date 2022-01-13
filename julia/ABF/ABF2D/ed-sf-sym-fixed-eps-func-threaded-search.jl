@@ -235,6 +235,7 @@ function abf3d_scan(p::Params)
         end
         CSV.write("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_$(tag).csv", DataFrame())
         scan_overlap = glob("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_*.csv")
+        sleep(3rand())
         if length(scan_overlap) != 1
             println("Overlap detected")
             rm("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_$(tag).csv")
