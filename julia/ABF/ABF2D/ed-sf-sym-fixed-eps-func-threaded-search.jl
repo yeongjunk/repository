@@ -225,16 +225,23 @@ function abf3d_scan(p::Params)
     ltc = Lattice2D(p.L, p.L, 4)
     ltc_p = Lattice2D(p.L, p.L, 2)
     boxidx = [box_inds(ltc_p, li) for li in p.l]
+    tag = rand(UInt64)
     while true
+        @label Search
         j, jj, jjj = missing_idx_finder(p)
         if (j, jj, jjj) == (0, 0, 0)
             println("It seems that scan is finished. The scan will be terminated.")
             break
         end
-        CSV.write("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp.csv", DataFrame())
+        CSV.write("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_$(tag).csv", DataFrame())
+        scan_overlap = glob("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_*.csv")
+        if length(scan_overlap) != 1
+            println("Overlap detected")
+            rm("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_$(tag).csv")
+            @goto Search
+        end
         println("start scanning at index: ", (j, jj, jjj))
         H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
-        H = convert.(ComplexF64, H)
         BW, E_c, E_del = energy_param_generator(p, p.θ[j], p.W[jj], 50, 0.9, 8, rng[1])
         # print_info(nt, BW, E_c, E_del, p)
         df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
@@ -273,6 +280,6 @@ function abf3d_scan(p::Params)
             end
         end
         CSV.write("L$(p.L)_Th$(j)_W$(jj)_E$(jjj).csv", vcat(df...))
-        rm("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp.csv")
+        rm("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_$(tag).csv")
     end
 end
