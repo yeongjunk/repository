@@ -218,6 +218,8 @@ function missing_idx_finder(p::Params)
     return miss_idx
 end
 
+
+
 function abf3d_scan(p::Params)
     col_str = generate_col_names(p)
     nt = Threads.nthreads()
@@ -260,8 +262,8 @@ function abf3d_scan(p::Params)
                     D = Diagonal(dis(p.L^2, p.W[jj], rng[x]))
                     @views H_prj = project(U'*(H_dis + D)*U)
                     droptol!(H_prj, 1E-12)
-                    e_inv, psi, info = eigsolve(construct_linear_map(Hermitian(p.L^2*(H_prj - E_c[jjj]*I(size(H_prj, 1))))), size(H_prj, 1),
-                        p.nev, :LM, ishermitian = true, krylovdim = max(30, 2p.nev + 1));
+                    lmap = construct_linear_map(Hermitian(p.L^2*(H_prj - E_c[jjj]*I(size(H_prj, 1)))))
+                    e_inv, psi, info = eigsolve(lmap, size(H_prj, 1), p.nev, :LM, ishermitian = true, krylovdim = max(30, 2p.nev + 1));
                     e = 1 ./ (p.L^2*real.(e_inv)) .+ E_c[jjj]
                     psi = reduce(hcat, psi)
                     #Crop energies that are outside the energy bins

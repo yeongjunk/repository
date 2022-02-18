@@ -25,7 +25,7 @@ default(
 len_W = 10
 L = [50 100 200]
 # rdir = ["/Users/pcs/data/ABF-sum/raw-data/2d-sf-pure-sym-pn/" for l in L]
-rdir = ["/Users/pcs/codes/project/julia/ABF/ABF2D/symdis/" for l in L]
+rdir = ["/Users/pcs/codes/project/julia/ABF/ABF2D/symdata/" for l in L]
 
 savedir = "/Users/pcs/data/ABF-sum/2d-sf-pure-sym-pn-figs/"
 
