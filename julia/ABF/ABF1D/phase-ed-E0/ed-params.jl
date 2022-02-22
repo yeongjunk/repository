@@ -4,7 +4,7 @@ struct Params
     θ::Vector{Float64}
     W::Vector{Float64}
     E::Vector{Float64}
-    q::Vector{Int64}
+    q::Vector{Float64}
 
     seed::Int64
     R::Int64
