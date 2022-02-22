@@ -100,7 +100,7 @@ function generate_col_names(p::Params)
     return ["l"*string(li)*"_q"*string(qi) for li in p.l, qi in p.q]
 end
 
-@time function abf3d_scan(p::Params)
+function abf3d_scan(p::Params)
     col_str = generate_col_names(p)
     nt = Threads.nthreads()
     rng = [MersenneTwister(p.seed + i) for i in 1:nt]
