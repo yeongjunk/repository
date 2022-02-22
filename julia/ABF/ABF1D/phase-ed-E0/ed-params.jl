@@ -24,7 +24,7 @@ end
 function readconfig(config::Dict)
     θ = range(config["th"][1],config["th"][2], length = config["th"][3])
     seed = config["seed"]
-    q = isa(config["q"], AbstractArray) ? Array{Int64}(config["q"]) : Array{Int64}([config["q"]])
+    q = isa(config["q"], AbstractArray) ? Array{Float64}(config["q"]) : Array{Float64}([config["q"]])
     W = range(config["W"][1], config["W"][2], length = config["W"][3])
     E = range(config["E"][1], config["E"][2], length = config["E"][3])
 
