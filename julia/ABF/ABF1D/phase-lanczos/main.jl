@@ -1,3 +1,6 @@
+# Diagonalize scale free model of phase disordered d = 1 nu = 2 ABF using Lanczos algorithm.
+# and compute GIPR(generalized IPR) of moment q and box size l.
+
 using LinearAlgebra, SparseArrays, Arpack
 using LinearMaps
 using Random

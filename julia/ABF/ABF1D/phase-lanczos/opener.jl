@@ -6,12 +6,12 @@ using JSON
 using Plots
 using Glob
 using Statistics
+using MAT
 
-
-global opendir = "/Users/pcs/data/ABF-sum/raw-data/phase/1d-sf-pd-pn/"
+global opendir = "/Users/pcs/data/ABF/rawdata/phase/1d-sf-pd-pn/"
 global root_dir = @__DIR__
-include(root_dir*"/lanczos-params.jl")
-global L = vec([5000 50000])
+include(root_dir*"/params.jl")
+global L = [300, 1000, 1001, 5000]
 global dir = [opendir for i in 1:length(L)]
 config_lists = opendir*"config_L5000"
 config  = JSON.parsefile(config_lists)
@@ -61,12 +61,28 @@ end
 
 l = 1
 q = 2
-ipr = Array{Float64}(undef, 1, 30)
-E = similar(pn)
-for i in 1:1, j in 1:30
-    df, _, _, _ = opener(i, 2, 1, j)
-    E[i, j] = mean(df.E)
-    ipr[i,j] = mean(df[:, "l$(l)_q$(q)"])
+ipr = Array{Float64}(undef, length(L), length(th), length(E))
+ipr_std = similar(ipr)
+ipr_ste = similar(ipr)
+ipr_E = similar(ipr)
+for i in 1:length(L), j in 1:length(th), k in 1:length(E)
+    df, _, _, _ = opener(i, j, 1, k)
+    ipr_E[i, j, k] = mean(df.E)
+    ipr[i, j, k] = mean(df[:, "l$(l)_q$(q)"])
+    ipr_std[i, j, k] = std(df[:, "l$(l)_q$(q)"])
+    ipr_ste[i, j, k] = ipr_std[i, j, k]./length(df[:, "l$(l)_q$(q)"])
 end
+plot(ipr_E[:, 2, :]', (ipr[:, 2, :]').^-1)
 
-plot(E[1, :], ipr[1, :].^-1)
+L = L
+th = vec(collect(th))
+W = vec(collect(W))
+V = V
+description = "IPR of Scale free model of d = 1 nu = 2 ABF. First axis: L, Second axis: thta, Thrid axis: E"
+
+data = Dict("L" => L,
+    "th" => th, "V" => V, "description" => description,
+    "E" => ipr_E, "ipr" => ipr, "ipr_std" => ipr_std,
+    "ipr_ste" => ipr_ste)
+
+matwrite(root_dir*"/1d-sf-phase-ipr.mat", data, compress=true)

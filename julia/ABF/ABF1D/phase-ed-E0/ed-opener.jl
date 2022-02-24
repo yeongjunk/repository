@@ -8,12 +8,12 @@ using Glob
 using Statistics
 using Binning
 
-global opendir = "/Users/pcs/data/ABF-sum/raw-data/phase/1d-sf-pd-pn/"
+global opendir = "/Users/pcs/data/ABF/rawdata/phase/1d-sf-pd-pn-E0/"
 global root_dir = @__DIR__
-include(root_dir*"/lanczos-params.jl")
-global L = vec([300 1000 5000])
+include(root_dir*"/ed-params.jl")
+global L = [301]
 global dir = [opendir for i in 1:length(L)]
-config_lists = opendir*"config_L5000"
+config_lists = opendir*"conf"
 config  = JSON.parsefile(config_lists)
 
 global th = range(config["th"][1], config["th"][2], length = config["th"][3])
@@ -24,7 +24,7 @@ global V = config["V"]
 function opener(i, j, k, l)
     #----------- Read configuration files ---------#
     #---------- open data ---------#
-    fn = "L$(L[i])_Th$(j)_W$(lpad(k, 2, "0"))_E$(lpad(l, 2, "0")).csv"
+    fn = "L$(L[i])_Th$(j)_W$(lpad(k, 1, "0"))_E$(lpad(l, 1, "0"))_purephase.csv"
     df = CSV.read(dir[i]*fn, DataFrame)
     return df, L[i], th[j], W[k], E[l]
 end
@@ -60,42 +60,21 @@ function processor_tau(b; q = 2)
 end
 
 l = 1
-q = 2
-ipr = Array{Float64}(undef, 3, 31)
-E = similar(ipr)
-for i in 1:3, j in 3:31
-    df, _, _, _ = opener(i, 2, 1, j-1)
-    E[i, j] = mean(df.E)
-    ipr[i,j] = mean(df[:, "l$(l)_q$(q)"])
+q = 2.0
+ipr = Array{Float64}(undef, 2)
+ipr_std = similar(ipr)
+ipr_E = similar(ipr)
+ipr_ste = similar(ipr)
+for i in 1:1, j in 1:2
+    df, _, _, _ = opener(i, j, 1, 1)
+    ipr_E[j] = mean(df.E)
+    ipr[j] = mean(df[:, "l$(l)_q$(q)"])
+    ipr_std[j] = std(df[:, "l$(l)_q$(q)"])
+    ipr_ste[j] = ipr_std[j]/sqrt(length(df[:, "l$(l)_q$(q)"]))
 end
+description = "IPR of Scale free model of d = 1 nu = 2 ABF. First axis: theta. at E = 0, odd number of system size. Exact diagonalization"
 
-for i in 1:3, j in 1
-    df, _, _, _ = opener(i, 2, 1, j)
-    E_max = maximum(df.E)
-    E_edges = vec([-E_max/100, E_max/100, E_max])
-    labels = binning_unsorted(df.E, E_edges)
-    idx_1 = findall(x -> x == 1, labels)
-    idx_2 = findall(x -> x == 2, labels)
-    E[i, 1] = mean(df.E[idx_1])
-    E[i, 2] = mean(df.E[idx_2])
-    ipr[i,1] = mean(df[idx_1, "l$(l)_q$(q)"])
-    ipr[i,2] = mean(df[idx_2, "l$(l)_q$(q)"])
-end
-
-scatter(E, (ipr.^-1), legend = false)
-
-
-
-df, _, _, _ = opener(1, 2, 1, 1)
-E_max = maximum(df.E)
-E_edges = vec([-E_max/1000, E_max/1000, E_max/10, E_max])
-labels = binning_unsorted(df.E, E_edges)
-idx_1 = findall(x -> x == 1, labels)
-idx_2 = findall(x -> x == 2, labels)
-idx_3 = findall(x -> x == 3, labels)
-mean(df[idx_1,"l1_q2"])^-1
-mean(df[idx_2,"l1_q2"])^-1
-mean(df[idx_3,"l1_q2"])^-1
-
-
-scatter(df.E[1:1000], df[1:1000, "l1_q2"].^ -1)
+data = Dict("L" => L, "V" => V, "th" => collect(th),"ipr" => ipr,
+    "ipr_std" => ipr_std, "ipr_ste" => ipr_ste,
+    "description"=> description)
+matwrite(root_dir*"/1d-sf-phase-ipr-E0.mat",  )
