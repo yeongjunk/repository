@@ -5,21 +5,6 @@ using SparseArrays
 using Lattice, ABF
 using LaTeXStrings
 
-marker = (:circle, 4.5, 1., stroke(-0.5, 1., :black))
-line = (:line, :solid, 2.5)
-default(
-    framestyle = :box,
-    size = (600,400),
-    # right_margin = [3mm 0mm],
-    grid = false,
-    minorticks = true,
-    legend = (0.1, 0.72),
-    fontfamily = "computer modern",
-    tickfontsize = 15,
-    guidefontsize = 15,
-    legendfontsize = 15,
-    annotationfontsize = 15, palette = :default)
-
 @doc """
 Unlike off_phase_dis2!, this returns 'phase disorder matrix' only, but
 it does not add to the original hamiltonian.
@@ -69,8 +54,8 @@ end
 @doc """
 Add onsite & phase disorder -> detangle -> project(scale free, normalize bandwidth)
 """
-function ham_sf_ph_on(H_fe, D_dis, T_dis, U, W, V)
-    H_dis = H_fe + D_dis + V/W*T_dis
+function ham_sf_ph_on(H_fe, D_ph, D_on, U, W, V)
+    H_dis = H_fe + V*D_ph + W*D_on
     H_dis = U'*H_dis*U
     H_out = projection(H_dis)
     return H_out
