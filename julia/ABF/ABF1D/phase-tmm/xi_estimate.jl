@@ -18,5 +18,5 @@ return m, a
 end
 
 estimate_xi(E, a, b) = a*E^b
-estimate_N(E, a, b) = trunc(Int64, 10^5*estimate_xi(E, a, b)) # Roughly 10^5 times the localization length is a good N to get error within 10%
+estimate_N(E, a, b) = trunc(Int64, 10^6*estimate_xi(E, a, b)) # Roughly 10^6 times the localization length is a good N to get error within 10%?
 
