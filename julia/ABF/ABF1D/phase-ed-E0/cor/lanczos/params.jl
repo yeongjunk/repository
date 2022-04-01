@@ -6,6 +6,9 @@ struct Params
     V::Float64
     num_blas::Int64
     E_window::Float64
+    periodic::Bool
+    E_c::Float64
+    nev::Int64
 end
 
 function readconfig(config::Dict)
@@ -14,6 +17,6 @@ function readconfig(config::Dict)
     num_blas = haskey(config, "num_blas") ? config["num_blas"] : 1
 
     return Params(config["L"], θ, seed, config["R"], 
-        config["V"], num_blas, config["E_window"])
+        config["V"], num_blas, config["E_window"], config["periodic"], config["E_c"], config["nev"])
 
 end

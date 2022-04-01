@@ -26,7 +26,7 @@ function main(ARGS)
     log10_logpsi_ste = dct["log10_logpsi_ste"]
     p1 = plot(logpsi, yerror = logpsi_ste);
     p2 = plot(logpsi.^2, yerror = 2logpsi_ste);
-    p3 = plot(log10.(1:p.L), log10.(logpsi), yerror =log10_logpsi_ste);
+    p3 = plot(log10.(1:p.L÷4+1), log10.(logpsi), yerror =log10_logpsi_ste);
     savefig(p1, "p1.pdf")  
     savefig(p2, "p2.pdf")
     savefig(p3, "p3.pdf")
