@@ -107,7 +107,7 @@ end
 function scan_xi(p::Params)
     @unpack θ, E, R, N, seed = p
     rng = [MersenneTwister(seed + i) for i in 1:Threads.nthreads()]
-    xi = Array{Float64}(undef, length(E), length(R)) 
+    xi = Array{Float64}(undef, length(E), R) 
     for i in tqdm(1:length(E))
         @Threads.threads for r in 1:R
             xi[i, r] = compute_xi(θ = θ, E = E[i], N = N[i], rng = rng[r])
