@@ -9,12 +9,14 @@ using SharedArrays
 
 
 function scan_xi(p::Params)
-    @everywhere @unpack θ, E, R, N, seed = $p 
+    @everywhere @unpack q, θ, E, R, N, seed = $p 
     rng = [MersenneTwister(seed + i) for i in 1:nprocs()]
     xi = SharedArray{Float64}(length(E), R)  
     for i in 1:length(E)
        @sync @distributed for r in 1:R
-            xi[i, r] = compute_xi(θ = θ, E = E[i], N = N[i], rng = rng[myid()])
+            println(typeof(θ))
+            println(typeof(E[i]))
+            xi[i, r] = compute_xi(θ = θ, E = E[i], N = N[i], q = q, rng = rng[myid()])
        end 
     end 
     return mean(xi, dims = 2), std(xi, dims=2)

@@ -104,7 +104,7 @@ end
 
 function read_config(dt::Dict)
     if !haskey(dt, "N")
-        dt["N"] = zeros(Int64, length(dt["N"]))
+        dt["N"] = zeros(Int64, length(dt["E"]))
     end
     if haskey(dt, "vartype")
         s = dt["vartype"]

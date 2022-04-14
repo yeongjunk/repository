@@ -8,7 +8,7 @@ LinearAlgebra.BLAS.set_num_threads(1)
 function estimate_xi(; θ = 0.25, E = [0.01], N = 10^5, q = 4)
    xi = similar(E)
    for i in 1:length(E)
-       xi[i] = compute_xi(θ = Float64(θ), E = E[i], N = N,  q = q)
+       xi[i] = compute_xi(θ = θ, E = E[i], N = N,  q = q)
    end
    return xi
 end
