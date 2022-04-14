@@ -1,0 +1,54 @@
+        - using Distributed
+        - using JSON, ArgParse
+        - using CSV
+        - using DataFrames
+        - using SharedArrays
+        - @everywhere include("./xi.jl")
+        - @everywhere include("./xi_estimate.jl")
+        - @everywhere LinearAlgebra.BLAS.set_num_threads(1)
+        - 
+        - 
+        - function scan_xi(p::Params)
+      784     @everywhere @unpack θ, E, R, N, seed = $p 
+        0     rng = [MersenneTwister(seed + i) for i in 1:nprocs()]
+        0     xi = SharedArray{Float64}(length(E), R)  
+       64     for i in 1:length(E)
+     2432        @sync @distributed for r in 1:R
+        -             xi[i, r] = compute_xi(θ = θ, E = E[i], N = N[i], rng = rng[myid()])
+        -        end 
+        -     end 
+       32     return mean(xi, dims = 2), std(xi, dims=2)
+        - end
+        - 
+        - function parse_commandline()
+      192     s = ArgParseSettings()
+        0     @add_arg_table! s begin
+        -         "config"
+        -             help = "configuration file"
+        -             required = true
+        -         "--out"
+        -             help = "Output file name"
+        -             arg_type = String
+        -             default = "xi.csv"
+        -     end
+        - 
+        0     return parse_args(s)
+        - end
+        - 
+        - function main()
+        0     args = parse_commandline()
+        0     config = JSON.parsefile(args["config"])
+        0     p = read_config(config)
+        0     if p.N_auto == true
+      144         m, a = estimate_xi_coefs(θ = p.θ, N = 10^6)
+        0         p.N .= estimate_N.(p.E, a, m)
+        0         idx = findall(x -> x < 10^6, p.N)
+       64         p.N[idx] .= 10^6
+        0         println(p.N)
+        -     end
+        0     println(nprocs())
+        0     @time xi, xi_std = scan_xi(p)
+      272     CSV.write(args["out"], DataFrame(E = p.E, xi = vec(xi), xi_std = vec(xi_std), xi_ste = vec(xi_std)/sqrt(p.R)))
+        - end
+        - 
+        - main()

@@ -1,0 +1,22 @@
+        - using LinearAlgebra
+        - using StatsBase
+        - 
+        - include("./xi.jl")
+        - LinearAlgebra.BLAS.set_num_threads(1)
+        - 
+        - #Compute rough estimate of xi = a*E^b
+        - function estimate_xi_coefs(; θ = 0.25, E1 = 10^-4, E2 = 10^-5, N = 10^7, R = 2)
+        0     xi_1 = mean([compute_xi(θ = θ, E = E1, N = N) for i in 1:R])
+        0     xi_2 = mean([compute_xi(θ = θ, E = E2, N = N) for i in 1:R])
+      160     log_xi = log10.([xi_1; xi_2])
+       80     log_E = [-4.; -5.] 
+        -     Y = log_xi
+       96     X = zeros(2, 2); X[:, 1] = log_E;X[:, 2] .= 1. 
+        0     m, a = X\Y # m: power, a = prefactor
+        0     a = 10^a
+        0 return m, a
+        - end
+        - 
+        - estimate_xi(E, a, b) = a*E^b
+        - estimate_N(E, a, b) = trunc(Int64, 10^6*estimate_xi(E, a, b)) # Roughly 10^6 times the localization length is a good N to get error within 10%?
+        - 
