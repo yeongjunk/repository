@@ -8,12 +8,14 @@ using ABFSym
 using Lattice
 using PN
 using Glob
-include("./ed-sf-sym-fixed-eps-params.jl") # read parameters from configuration file
+include("./ed-params.jl") # read parameters from configuration file
+
 
 function construct_linear_map(A)
     F = factorize(A)
     LinearMap{eltype(A)}((y, x) -> ldiv2!(y, F, x), size(A, 1), ismutating = true, ishermitian = true)
 end
+
 
 function ldiv2!(y, F, x)
     y .= F\x
@@ -119,7 +121,6 @@ function makesym2d(ltc, H, V1, V2; rng = Random.GLOBAL_RNG)
     Id = LinearAlgebra.I(2)
     for m in 1:ltc.M, n in 1:ltc.N
         for i in 1:2, j in 1:2
-
             Vx = symp_dis(V1, V2, rng = rng)
             Vy = symp_dis(V1, V2, rng = rng)
             Vd1 = symp_dis(V1, V2, rng = rng)
@@ -217,9 +218,7 @@ function missing_idx_finder(p::Params)
     return miss_idx
 end
 
-
-
-function abf3d_scan(p::Params)
+function abf2d_scan(p::Params)
     col_str = generate_col_names(p)
     nt = Threads.nthreads()
     rng = [MersenneTwister(p.seed + i) for i in 1:nt]
@@ -234,6 +233,7 @@ function abf3d_scan(p::Params)
             println("It seems that scan is finished. The scan will be terminated.")
             break
         end
+
         CSV.write("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_$(tag).csv", DataFrame())
         scan_overlap = glob("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_*.csv")
         sleep(3rand())
@@ -242,14 +242,17 @@ function abf3d_scan(p::Params)
             rm("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_$(tag).csv")
             @goto Search
         end
+
         println("start scanning at index: ", (j, jj, jjj))
         H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
-        BW, E_c, E_del = energy_param_generator(p, p.θ[j], p.W[jj], 50, 0.9, 8, rng[1])
-        # print_info(nt, BW, E_c, E_del, p)
+
+        BW, E_c, E_del = energy_param_generator(p, p.θ[j], p.W[jj], 50, 0.9, 5, rng[1])
+
         df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
         for t in 1:nt, k in 1:length(p.l), kk in 1:length(p.q)
             insertcols!(df[t], col_str[k, kk] => Float64[])
         end
+
         @Threads.threads for r in 1:p.R÷p.nev# Realizations
             er = true
             er_num = 0
@@ -260,14 +263,17 @@ function abf3d_scan(p::Params)
                     H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng[x])
                     D = Diagonal(dis(p.L^2, p.W[jj], rng[x]))
                     @views H_prj = project(U'*(H_dis + D)*U)
-                    droptol!(H_prj, 1E-12)
-                    lmap = construct_linear_map(Hermitian(p.L^2*(H_prj - E_c[jjj]*I(size(H_prj, 1)))))
+                    droptol!(H_prj, 1E-14)
+                    shifted_H = Hermitian(p.L^2*(H_prj - E_c[jjj]*I(2p.L^2))) 
+                    lmap = construct_linear_map(shifted_H)
                     e_inv, psi, info = eigsolve(lmap, size(H_prj, 1), p.nev, :LM, ishermitian = true, krylovdim = max(30, 2p.nev + 1));
                     e = 1 ./ (p.L^2*real.(e_inv)) .+ E_c[jjj]
                     psi = reduce(hcat, psi)
+
                     #Crop energies that are outside the energy bins
-                    idx = findall(x -> (E_c[jjj] - E_del) <  x < (E_c[jjj] + E_del), e)
+                    idx = findall(x -> (E_c[jjj] - E_del) < x < (E_c[jjj] + E_del), e)
                     @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 10), r = fill(r, length(idx)))
+
                     #Push PN
                     for k in 1:length(p.l), kk in 1:length(p.q)
                         @views insertcols!(df_temp, col_str[k, kk] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx[k], q = p.q[kk]), sigdigits = 10))
