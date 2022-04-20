@@ -14,8 +14,9 @@ function scan_gr(p::Params)
     g_r = SharedArray{Float64}(length(E), N÷2)  
     g_r_sq = similar(g_r)
     @sync @distributed for i in 1:length(E)
-            g_r[i, :], g_r_sq[i, :] = cor_tmm(θ = θ, E = E[i], N = N, q = q, rng = rng[myid()])
+            g_r[i, :], g_r_sq[i, :] = cor_tmm(θ = θ, E = E[i], N = N, q = q, R = R, rng = rng[myid()])
     end 
+ 
     return g_r, g_r_sq
 end
 
