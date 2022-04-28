@@ -4,16 +4,16 @@ using SparseArrays
 
 export ham_fd, LUT, redef1, redef2, redef3, U_fe
 
-function ham_fd(ltc::Lattice3D, Ea::F, Eb::F) where F <: AbstractFloat
+function ham_fd(ltc::Lattice3D, Ea::Real, Eb::Real)
     @assert ltc.U == 2
-    return spdiagm(0 => repeat([F(Ea), F(Eb)], ltc.L*ltc.M*ltc.N))
+    return spdiagm(0 => repeat([Float64(Ea), Float64(Eb)], ltc.L*ltc.M*ltc.N))
 end
 
-function LUT(ltc::Lattice3D, θ::F) where F <: AbstractFloat
+function LUT(ltc::Lattice3D, θ::Real)
     num_sites = ltc.L*ltc.M*ltc.N*ltc.U
     cos_θ = cospi(θ)
     sin_θ = sinpi(θ)
-    I = Int64[]; J = Int64[]; V = F[]
+    I = Int64[]; J = Int64[]; V = Float64[]
     for l in 1:ltc.L, m in 1:ltc.M, n in 1:ltc.N
         push!(I, index(ltc, (l,m,n,1)))
         push!(J, index(ltc, (l,m,n,1)))
@@ -35,7 +35,7 @@ function LUT(ltc::Lattice3D, θ::F) where F <: AbstractFloat
 
 end
 
-function LUT(ltc::Lattice3D, θ::F, ϕ1::F, ϕ2::F) where F <: AbstractFloat
+function LUT(ltc::Lattice3D, θ::Real, ϕ1::Real, ϕ2::Real)
     num_sites = ltc.L*ltc.M*ltc.N*ltc.U
     cos_θ = cospi(θ)
     sin_θ = sinpi(θ)
@@ -44,7 +44,7 @@ function LUT(ltc::Lattice3D, θ::F, ϕ1::F, ϕ2::F) where F <: AbstractFloat
     exp_phi1m = 1/exp_phi1
     exp_phi2m = 1/exp_phi2
 
-    I = Int64[]; J = Int64[]; V = Complex{F}[]
+    I = Int64[]; J = Int64[]; V = ComplexF64[]
     for l in 1:ltc.L, m in 1:ltc.M, n in 1:ltc.N
         push!(I, index(ltc, (l,m,n,1)))
         push!(J, index(ltc, (l,m,n,1)))
@@ -66,9 +66,9 @@ function LUT(ltc::Lattice3D, θ::F, ϕ1::F, ϕ2::F) where F <: AbstractFloat
 
 end
 
-function redef1(ltc::Lattice3D,vartype = Float64)
+function redef1(ltc::Lattice3D)
     num_sites = ltc.L*ltc.M*ltc.N*ltc.U
-    I = Int64[]; J = Int64[]; V = vartype[]
+    I = Int64[]; J = Int64[]; V = Float64[]
     for l in 1:ltc.L, m in 1:ltc.M, n in 1:ltc.N
         push!(I, index(ltc, (l,m,n,1)))
         push!(J, index(ltc, (l,m,n,1)))
@@ -81,9 +81,9 @@ function redef1(ltc::Lattice3D,vartype = Float64)
     return sparse(I, J, V, num_sites, num_sites)
 end
 
-function redef2(ltc::Lattice3D, vartype = Float64)
+function redef2(ltc::Lattice3D)
     num_sites = ltc.L*ltc.M*ltc.N*ltc.U
-    I = Int64[]; J = Int64[]; V = vartype[]
+    I = Int64[]; J = Int64[]; V = Float64[]
     for l in 1:ltc.L, m in 1:ltc.M, n in 1:ltc.N
         push!(I, index(ltc, (l,m,n,1)))
         push!(J, index(ltc, (l,m,n,1)))
@@ -96,9 +96,9 @@ function redef2(ltc::Lattice3D, vartype = Float64)
     return sparse(I, J, V, num_sites, num_sites)
 end
 
-function redef3(ltc::Lattice3D, vartype = Float64)
+function redef3(ltc::Lattice3D)
     num_sites = ltc.L*ltc.M*ltc.N*ltc.U
-    I = Int64[]; J = Int64[]; V = vartype[]
+    I = Int64[]; J = Int64[]; V = Float64[]
     for l in 1:ltc.L, m in 1:ltc.M, n in 1:ltc.N
         push!(I, index(ltc, (l,m,n,1)))
         push!(J, index(ltc, (l,m,n,1)))
@@ -111,30 +111,30 @@ function redef3(ltc::Lattice3D, vartype = Float64)
     return sparse(I, J, V, num_sites, num_sites)
 end
 
-function U_fe(ltc::Lattice3D, θ::F) where F <: AbstractFloat
+function U_fe(ltc::Lattice3D, θ::Real)
     U1 = LUT(ltc,θ)
-    T1 = redef1(ltc, vartype = F)
-    T2 = redef2(ltc, vartype = F)
-    T3 = redef3(ltc, vartype = F)
+    T1 = redef1(ltc)
+    T2 = redef2(ltc)
+    T3 = redef3(ltc)
     return U1*T3*U1*T2*U1*T1*U1
 end
 
-function U_fe(ltc::Lattice3D, θ::F,ϕ1::F, ϕ2::F) where F <: AbstractFloat
+function U_fe(ltc::Lattice3D, θ::Real,ϕ1::Real, ϕ2::Real)
     U1 = LUT(ltc,θ,ϕ1, ϕ2)
-    T1 = redef1(ltc, vartype = F)
-    T2 = redef2(ltc, vartype = F)
-    T3 = redef3(ltc, vartype = F)
+    T1 = redef1(ltc)
+    T2 = redef2(ltc)
+    T3 = redef3(ltc)
     return U1*T3*U1*T2*U1*T1*U1
 end
 
-function ham_fe(ltc::Lattice3D, Ea::F, Eb::F, θ::F) where F <: AbstractFloat
+function ham_fe(ltc::Lattice3D, Ea, Eb, θ::Real)
     U = U_fe(ltc, θ)
     H_fd = ham_fd(ltc, Ea, Eb)
     H_fe = U*H_fd*U'
     return H_fe, U
 end
 
-function ham_fe(ltc::Lattice3D, Ea, Eb, θ::F, ϕ1::F, ϕ2::F) where F <: AbstractFloat
+function ham_fe(ltc::Lattice3D, Ea, Eb, θ::Real, ϕ1::Real, ϕ2::Real)
     U = U_fe(ltc, θ, ϕ1, ϕ2)
     H_fd = ham_fd(ltc, Ea, Eb)
     H_fe = U*H_fd*U'

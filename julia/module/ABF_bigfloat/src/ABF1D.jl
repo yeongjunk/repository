@@ -3,19 +3,16 @@ using SparseArrays
 
 export ham_fd, LUT, redef1, project, U_fe, ham_fe
 
-"""
-Creates fully detangled Hamiltonian of Float type F.
-"""
-function ham_fd(ltc::Lattice1D, Ea::F, Eb::F) where F <: AbstractFloat
+function ham_fd(ltc::Lattice1D, Ea::Real, Eb::Real)
     @assert ltc.U == 2
-    return spdiagm(0 => repeat([F(Ea), F(Eb)], ltc.N))
+    return spdiagm(0 => repeat([Ea, Eb], ltc.N))
 end
 
-function LUT(ltc::Lattice1D, θ::F) where F <: AbstractFloat 
+function LUT(ltc::Lattice1D, θ::Real)
     num_sites = ltc.N*ltc.U
     cos_θ = cospi(θ)
     sin_θ = sinpi(θ)
-    I = Int64[]; J = Int64[]; V = F[]
+    I = Int64[]; J = Int64[]; V = eltype(θ)[]
     for n in 1:ltc.N
         push!(I, index(ltc, (n, 1)))
         push!(J, index(ltc, (n, 1)))
@@ -36,7 +33,7 @@ function LUT(ltc::Lattice1D, θ::F) where F <: AbstractFloat
     return sparse(I, J, V, num_sites, num_sites)
 end
 
-function LUT(ltc::Lattice1D, θ::F, ϕ1::F, ϕ2::F) where F <: AbstractFloat
+function LUT(ltc::Lattice1D, θ::Real, ϕ1::Real, ϕ2::Real)
     num_sites = ltc.N*ltc.U
     cos_θ = cospi(θ)
     sin_θ = sinpi(θ)
@@ -45,7 +42,7 @@ function LUT(ltc::Lattice1D, θ::F, ϕ1::F, ϕ2::F) where F <: AbstractFloat
     exp_phi1m = 1/exp_phi1
     exp_phi2m = 1/exp_phi2
 
-    I = Int64[]; J = Int64[]; V = Complex{F}[]
+    I = Int64[]; J = Int64[]; V = Complex{eltype(θ)}[]
     for n in 1:ltc.N
         push!(I, index(ltc, (n, 1)))
         push!(J, index(ltc, (n, 1)))
@@ -66,36 +63,29 @@ function LUT(ltc::Lattice1D, θ::F, ϕ1::F, ϕ2::F) where F <: AbstractFloat
     return sparse(I, J, V, num_sites, num_sites)
 end
 
-
-"""
-Unit cell redefinition transformation. default eltype is Float64. If you want more general type, specify keyword argument, e.g. vartype=BigFloat. 
-"""
-function redef1(ltc::Lattice1D; vartype=Float64)
+function redef1(ltc::Lattice1D; tp = Float64)
     num_sites = ltc.N*ltc.U
-    I = Int64[]; J = Int64[]; V = vartype[]
+    I = Int64[]; J = Int64[]; V = tp[]
     for n in 1:ltc.N
         push!(I, index(ltc, (n, 1)))
         push!(J, index(ltc, (n, 1)))
-        push!(V, one(vartype))
+        push!(V, one(tp))
 
         push!(I, index(ltc, (n, 2)))
         push!(J, index(ltc, (n + 1, 2)))
-        push!(V, one(vartype))
+        push!(V, one(tp))
     end
     return sparse(I, J, V, num_sites, num_sites)
 end
 
-"""
-This is for test. Don't use it
-"""
-function redef1(ltc::Lattice1D, ϕ::F) where F <: AbstractFloat
+function redef1(ltc::Lattice1D, ϕ::Real)
     num_sites = ltc.N*ltc.U
-    I = Int64[]; J = Int64[]; V = Complex{F}[]
+    I = Int64[]; J = Int64[]; V = eltype(ϕ)[]
     c = exp(im*ϕ)
     for n in 1:ltc.N
         push!(I, index(ltc, (n, 1)))
         push!(J, index(ltc, (n, 1)))
-        push!(V, one(vartype))
+        push!(V, 1)
 
         push!(I, index(ltc, (n, 2)))
         push!(J, index(ltc, (n + 1, 2)))
@@ -104,38 +94,27 @@ function redef1(ltc::Lattice1D, ϕ::F) where F <: AbstractFloat
     return sparse(I, J, V, num_sites, num_sites)
 end
 
-"""
-Construct Full unitary that constructs FE ABF
-"""
-function U_fe(ltc::Lattice1D, θ::F) where F <: AbstractFloat
+function U_fe(ltc::Lattice1D, θ::Real)
     U1 = LUT(ltc, θ)
-    T1 = redef1(ltc, vartype = F)
+    T1 = redef1(ltc)
     return U1*T1*U1
 end
 
-"""
-Real unitary parameters. This is the main FE construction
-"""
-function ham_fe(ltc::Lattice1D, Ea::F, Eb::F, θ::F) where F <: AbstractFloat
-    U = U_fe(ltc, θ, vartype = F)
+function ham_fe(ltc::Lattice1D, Ea::Real, Eb::Real, θ::Real)
+    U = U_fe(ltc, θ)
     H_fd = ham_fd(ltc, Ea, Eb)
     H_fe = U*H_fd*U'
     return H_fe, U
 end
 
-"""
-More general complex LUT. You won't need it.
-"""
-function ham_fe(ltc::Lattice1D, Ea::F, Eb::F, θ::F, ϕ1::F, ϕ2::F) where F <: AbstractFloat
+function ham_fe(ltc::Lattice1D, Ea::Real, Eb::Real, θ::Real, ϕ1::Real, ϕ2::Real)
     U = U_fe(ltc, θ, ϕ1, ϕ2)
     H_fd = ham_fd(ltc, Ea, Eb)
     H_fe = U*H_fd*U'
     return H_fe, U
 end
-"""
-Most general LUT parameters. You won't need it.
-"""
-function ham_fe(ltc::Lattice1D, Ea::F, Eb::F, θ::F, ϕ11::F, ϕ12::F, ϕ21::F, ϕ22::F, ϕ::F) where F <: AbstractFloat
+
+function ham_fe(ltc::Lattice1D, Ea::Real, Eb::Real, θ::Real, ϕ11::Real, ϕ12::Real, ϕ21::Real, ϕ22::Real, ϕ::Real)
     U1 = LUT(ltc, θ, ϕ11, ϕ12)
     T = redef1(ltc, ϕ)
     U2 = LUT(ltc, θ, ϕ21, ϕ22)
