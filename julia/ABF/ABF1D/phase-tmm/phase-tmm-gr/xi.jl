@@ -13,7 +13,7 @@ function hoppings(p::AbstractArray{T}, s::T, c::T, s4::T,c4::T, s2c2::T) where T
     t_1 = 2im*(p[1, 1]*s4 - p[1, 1]*c4 + p[2, 1]*s2c2 + p[2, 2]*s2c2 
         + p[3, 1]*c4 - p[3, 2]*s2c2 - p[4, 1]*s2c2 + p[4, 2]*s4
         - p[5, 1]*c4 - p[5, 2]*s4)*s2c2
-    t_2 = 2im*(-p[2, 1] + p[3, 1] + p[4, 1] - p[5, 1])*s4*c4
+    t_2 = 2im*(p[2, 1] - p[3, 1] - p[4, 1] + p[5, 1])*s4*c4
     return t_1, t_2
 end
 
