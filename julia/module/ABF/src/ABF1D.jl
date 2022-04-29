@@ -88,7 +88,7 @@ end
 """
 This is for test. Don't use it
 """
-function redef1(ltc::Lattice1D, ϕ::F) where F <: AbstractFloat
+function redef1(ltc::Lattice1D, ϕ::F, vartype = F) where F <: AbstractFloat
     num_sites = ltc.N*ltc.U
     I = Int64[]; J = Int64[]; V = Complex{F}[]
     c = exp(im*ϕ)
@@ -117,7 +117,7 @@ end
 Real unitary parameters. This is the main FE construction
 """
 function ham_fe(ltc::Lattice1D, Ea::F, Eb::F, θ::F) where F <: AbstractFloat
-    U = U_fe(ltc, θ, vartype = F)
+    U = U_fe(ltc, θ)
     H_fd = ham_fd(ltc, Ea, Eb)
     H_fe = U*H_fd*U'
     return H_fe, U

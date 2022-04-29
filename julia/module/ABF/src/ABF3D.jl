@@ -66,7 +66,7 @@ function LUT(ltc::Lattice3D, θ::F, ϕ1::F, ϕ2::F) where F <: AbstractFloat
 
 end
 
-function redef1(ltc::Lattice3D,vartype = Float64)
+function redef1(ltc::Lattice3D; vartype = Float64)
     num_sites = ltc.L*ltc.M*ltc.N*ltc.U
     I = Int64[]; J = Int64[]; V = vartype[]
     for l in 1:ltc.L, m in 1:ltc.M, n in 1:ltc.N
@@ -81,7 +81,7 @@ function redef1(ltc::Lattice3D,vartype = Float64)
     return sparse(I, J, V, num_sites, num_sites)
 end
 
-function redef2(ltc::Lattice3D, vartype = Float64)
+function redef2(ltc::Lattice3D; vartype = Float64)
     num_sites = ltc.L*ltc.M*ltc.N*ltc.U
     I = Int64[]; J = Int64[]; V = vartype[]
     for l in 1:ltc.L, m in 1:ltc.M, n in 1:ltc.N
@@ -96,7 +96,7 @@ function redef2(ltc::Lattice3D, vartype = Float64)
     return sparse(I, J, V, num_sites, num_sites)
 end
 
-function redef3(ltc::Lattice3D, vartype = Float64)
+function redef3(ltc::Lattice3D; vartype = Float64)
     num_sites = ltc.L*ltc.M*ltc.N*ltc.U
     I = Int64[]; J = Int64[]; V = vartype[]
     for l in 1:ltc.L, m in 1:ltc.M, n in 1:ltc.N

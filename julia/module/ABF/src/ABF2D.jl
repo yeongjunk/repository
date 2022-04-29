@@ -63,7 +63,7 @@ function LUT(ltc::Lattice2D, θ::F, ϕ1::F, ϕ2::F) where F <: AbstractFloat
     return sparse(I, J, V, num_sites, num_sites)
 end
 
-function redef1(ltc::Lattice2D, vartype = Float64)
+function redef1(ltc::Lattice2D; vartype = Float64)
     num_sites = ltc.M*ltc.N*ltc.U
     I = Int64[]; J = Int64[]; V = vartype[]
     for m in 1:ltc.M, n in 1:ltc.N
@@ -78,7 +78,7 @@ function redef1(ltc::Lattice2D, vartype = Float64)
     return sparse(I, J, V, num_sites, num_sites)
 end
 
-function redef2(ltc::Lattice2D, vartype = Float64)
+function redef2(ltc::Lattice2D; vartype = Float64)
     num_sites = ltc.M*ltc.N*ltc.U
     I = Int64[]; J = Int64[]; V = vartype[]
     for m in 1:ltc.M, n in 1:ltc.N
