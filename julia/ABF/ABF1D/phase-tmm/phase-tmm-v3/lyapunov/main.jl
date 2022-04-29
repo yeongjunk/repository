@@ -30,7 +30,7 @@ function parse_commandline()
         "--out"
             help = "Output file name"
             arg_type = String
-            default = "lyap.csv"
+            default = "lyap.mat"
     end
 
     return parse_args(s)
@@ -46,7 +46,10 @@ function main()
     p = read_config(config)
     println(nprocs())
     @time lyap = scan_lyap(p)
-    matwrite(args["out"], Dict("lyap" => lyap))  
+    lyap = Array(lyap)
+    dct = Dict("E" => Float64.(p.E), "N" => p.N, "R" => p.R, "q" => p.q, "lyap" => lyap)
+    display(dct)
+    matwrite(args["out"], dct)  
 end
 
 main()
