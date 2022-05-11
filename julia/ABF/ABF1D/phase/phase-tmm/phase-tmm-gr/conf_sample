@@ -1,6 +1,6 @@
 {
     "E":[0.01],
-    "prec":500,
+    "prec":100,
     "vartype": "BigFloat",
     "th":0.25,
     "q":2,

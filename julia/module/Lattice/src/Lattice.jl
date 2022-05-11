@@ -1,4 +1,4 @@
-# A convenient tool for manipulating vectors and matrices of lattice structure
+# A convenient tool for indexing vectors and matrices of lattices. 
 
 module Lattice
     @doc """

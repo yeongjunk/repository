@@ -4,6 +4,8 @@ using CSV
 using DataFrames
 using SharedArrays
 using DelimitedFiles
+using MultiFloats
+MultiFloats.use_bigfloat_transcendentals()
 @everywhere include("./xi.jl")
 @everywhere LinearAlgebra.BLAS.set_num_threads(1)
 

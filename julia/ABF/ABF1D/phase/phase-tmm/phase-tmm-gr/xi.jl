@@ -35,7 +35,8 @@ for T_j, the transfer vector is given by (ψ_j-1, ψ_j, ψ_j-3, ψ_j-2). j shoul
 """
 function compute_psi(;θ::F = 0.25, E::F = 0.1 , N::Integer = 100000, q = 2, rng::AbstractRNG = Random.GLOBAL_RNG) where F <: Real
     dist = Uniform(F(-0.5), F(0.5)) # Uniform distribution [-0.5, 0.5]
-    s, c = sincospi(θ)
+    s = sinpi(θ)
+    c = cospi(θ)
     s4 = s^4; c4 = c^4; s2c2 = s^2*c^2 # pre-calculation of sines and cosines for performance optimization
     # Initial hoppings
     p = Array{F}(undef, 5, 2)
