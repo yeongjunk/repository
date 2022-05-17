@@ -8,11 +8,13 @@ using ABFSym
 using Lattice
 using PN
 using Glob
-include("./ed-params.jl") # read parameters from configuration file
+include("./params.jl") # read parameters from configuration file
 
-
-function construct_linear_map(A)
-    F = factorize(A)
+"""
+Linear map for A-IE
+"""
+function shift_invert_linear_map(A, E)
+    F = factorize(A-E*I(size(A, 1)))
     LinearMap{eltype(A)}((y, x) -> ldiv2!(y, F, x), size(A, 1), ismutating = true, ishermitian = true)
 end
 
@@ -21,6 +23,9 @@ function ldiv2!(y, F, x)
     y .= F\x
 end
 
+""" 
+Create onsite disorder realization array in a symplectic way.
+"""
 function dis(N, W, rng)
     arr = Vector{Float64}(undef, 4N)
     d_arr = W*(rand(rng, 2N) .- 0.5)
@@ -30,6 +35,7 @@ function dis(N, W, rng)
     end
     return arr
 end
+
 
 function box_inds(ltc, b)
     L = ltc.M
@@ -100,6 +106,7 @@ function symp_dis(V1, V2; rng = Random.GLOBAL_RNG)
     ϕ_dis = 2pi*rand(rng)
     return [V1 exp(-im*ϕ_dis)*V2_dis; -exp(im*ϕ_dis)*V2_dis V1]
 end
+
 function makesym2d(ltc, H, V1, V2; rng = Random.GLOBAL_RNG)
     t0 = Float64[]
     t1 = Float64[]
@@ -139,50 +146,6 @@ function makesym2d(ltc, H, V1, V2; rng = Random.GLOBAL_RNG)
     return sparse(I, J, val, size(H, 1), size(H, 2))
 end
 
-function estimate_bw(p, θ, W, L, rng)
-    ltc = Lattice2D(L, L, 4)
-    H, U = ham_fe(ltc, -2, 0, θ) # Fully entangled hamiltonian
-    H = convert.(ComplexF64, H)
-    H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng)
-    D = Diagonal(dis(L^2, W, rng))
-    @views H_prj = project(U'*(H_dis + D)*U)
-    vals, psi, info = eigsolve(Hermitian(H_prj), size(H_prj, 1), 1, :LM, ishermitian = true, krylovdim = 30)
-    return 2*abs(maximum(vals))
-end
-
-# @doc"""
-# p: Params
-# θ: angle
-# W: disorder strength
-# L: system size for estimating bandwidth.
-# E_crop: crop the end of the spectrum. Recommend 0.9
-# E_bin_width: portion given by 1/E_bin_width of the small energy window around energy center.
-# rng: random number generator
-# """
-function auto_energy_params(p, θ, W, L, E_crop, E_bin_width, rng)
-    BW = estimate_bw(p, θ, W, L, rng)
-    E_c = range(0.0001, BW/2*E_crop, length = length(p.E))
-    E_del = (E_c[2] - E_c[1])/E_bin_width
-    return BW, E_c, E_del
-end
-
-function energy_param_generator(p, θ, W, L, E_crop, E_bin_width, rng)
-    if p.bw_auto
-        BW, E_c, E_del = auto_energy_params(p, θ, W, L, E_crop, E_bin_width, rng)
-    else
-        if length(p.E) != 1
-            BW = p.E[end] - p.E[1]
-            E_c = p.E
-            E_del = (E_c[2] - E_c[1])/p.E_bin_width
-        elseif length(p.E) == 1
-            BW = estimate_bw(p, θ, W, L, rng)
-            E_c = p.E[1] + 1E-12
-            E_del = BW/p.E_bin_width
-        end
-    end
-    return BW, E_c, E_del
-end
-
 function print_info(nt, BW, E_c, E_del, p)
     println("Number of BLAS threads: ",LinearAlgebra.BLAS.get_num_threads())
     println("Number of threads: $(nt)")
@@ -218,63 +181,95 @@ function missing_idx_finder(p::Params)
     return miss_idx
 end
 
-function abf2d_scan(p::Params)
+function generate_fn(L, j, jj, jjj)
+    return "L$(L)_Th$(j)_W$(jj)_E$(jjj)" 
+end
+
+function get_scan_idx(p::Params, scan_id::UInt64)
+    # Search for unscanned index
+    @label Search
+
+    j, jj, jjj = missing_idx_finder(p)
+    if (j, jj, jjj) == (0, 0, 0)
+        return (j, jj, jjj)	
+    end
+
+    fn = generate_fn(p.L,j, jj, jjj)
+    CSV.write(fn*"_temp_$(scan_id).csv", DataFrame())
+    scan_overlap = glob(fn*"_temp_*.csv")
+    sleep(3rand())
+    if length(scan_overlap) != 1
+        println("Overlap detected")
+        rm(fn*"_temp_$(scan_id).csv")
+        @goto Search
+    end
+
+    return j, jj, jjj
+end
+
+struct EParams
+    E_bw::Array{Float64}
+    E_c::Array{Float64}
+    E_del::Array{Float64}
+end
+
+function abf2d_scan(p::Params, p_E::EParams)
     col_str = generate_col_names(p)
     nt = Threads.nthreads()
     rng = [MersenneTwister(p.seed + i) for i in 1:nt]
     ltc = Lattice2D(p.L, p.L, 4)
     ltc_p = Lattice2D(p.L, p.L, 2)
     boxidx = [box_inds(ltc_p, li) for li in p.l]
-    tag = rand(UInt64)
-    while true
-        @label Search
-        j, jj, jjj = missing_idx_finder(p)
+    scan_id = rand(UInt64)
+    scan_flag = true
+    while scan_flag
+        j, jj, jjj = get_scan_idx(p, scan_id)
         if (j, jj, jjj) == (0, 0, 0)
-            println("It seems that scan is finished. The scan will be terminated.")
+            println("Nothing to scan. Terminate")
             break
         end
 
-        CSV.write("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_$(tag).csv", DataFrame())
-        scan_overlap = glob("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_*.csv")
-        sleep(3rand())
-        if length(scan_overlap) != 1
-            println("Overlap detected")
-            rm("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_$(tag).csv")
-            @goto Search
-        end
+        #---- Energy parameters ----#
+        E_c = p_E.E_c[j, jj, jjj]
+        E_del = p_E.E_del[j, jj]
 
-        println("start scanning at index: ", (j, jj, jjj))
-        H, U = ham_fe(ltc, -2, 0, p.θ[j]) # Fully entangled hamiltonian
+        #----------------------------- START DIAGONALIZATION -----------------------------#
+        println("start diagonalizing at index: ", (j, jj, jjj))
+        H, U = ham_fe(ltc, -2., 0., p.θ[j]) # Fully entangled hamiltonian
+        
 
-        BW, E_c, E_del = energy_param_generator(p, p.θ[j], p.W[jj], 100, 0.90, 4, rng[1])
-
+        #---- Allocate Empty dataframe ----#
         df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
         for t in 1:nt, k in 1:length(p.l), kk in 1:length(p.q)
             insertcols!(df[t], col_str[k, kk] => Float64[])
         end
 
-        @Threads.threads for r in 1:p.R÷p.nev# Realizations
+        @Threads.threads for r in 1:p.R÷p.nev # Realizations
             er = true
             er_num = 0
             while er
                 er_num == 5 && error("5 attempts faild.")
                 try
                     x = Threads.threadid()
+                    
+                    #---- Create scale free model ----#
                     H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng[x])
                     D = Diagonal(dis(p.L^2, p.W[jj], rng[x]))
                     @views H_prj = project(U'*(H_dis + D)*U)
                     droptol!(H_prj, 1E-14)
-                    shifted_H = Hermitian(p.L^2*(H_prj - E_c[jjj]*I(2p.L^2))) 
-                    lmap = construct_linear_map(shifted_H)
-                    e_inv, psi, info = eigsolve(lmap, size(H_prj, 1), p.nev, :LM, ishermitian = true, krylovdim = max(30, 2p.nev + 1));
-                    e = 1 ./ (p.L^2*real.(e_inv)) .+ E_c[jjj]
+                    H_prj = Hermitian(H_prj)
+
+                    #---- Lanczos method with shift-and-invert method ----#
+                    lmap = shift_invert_linear_map(H_prj, E_c) 
+                    e_inv, psi, info = eigsolve(lmap, 2p.L^2, p.nev, :LM, ishermitian = true, krylovdim = max(30, 2p.nev + 1));
+                    e = 1 ./ (p.L^2*real.(e_inv)) .+ E_c
                     psi = reduce(hcat, psi)
 
-                    #Crop energies that are outside the energy bins
-                    idx = findall(x -> (E_c[jjj] - E_del) < x < (E_c[jjj] + E_del), e)
+                    #---- Crop energies outside the energy bins ----#
+                    idx = findall(x -> (E_c - E_del) < x < (E_c + E_del), e)
                     @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 10), r = fill(r, length(idx)))
 
-                    #Push PN
+                    # Push PN
                     for k in 1:length(p.l), kk in 1:length(p.q)
                         @views insertcols!(df_temp, col_str[k, kk] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx[k], q = p.q[kk]), sigdigits = 10))
                     end
@@ -287,7 +282,79 @@ function abf2d_scan(p::Params)
                 end
             end
         end
-        CSV.write("L$(p.L)_Th$(j)_W$(jj)_E$(jjj).csv", vcat(df...))
-        rm("L$(p.L)_Th$(j)_W$(jj)_E$(jjj)_temp_$(tag).csv")
+        CSV.write(generate_fn(p.L, j, jj, jjj)*".csv", vcat(df...))
+        rm(generate_fn(p.L, j, jj, jjj)*"_temp_$(scan_id).csv")
+    end
+end
+
+function abf2d_scan(p::Params)
+    col_str = generate_col_names(p)
+    nt = Threads.nthreads()
+    rng = [MersenneTwister(p.seed + i) for i in 1:nt]
+    ltc = Lattice2D(p.L, p.L, 4)
+    ltc_p = Lattice2D(p.L, p.L, 2)
+    boxidx = [box_inds(ltc_p, li) for li in p.l]
+    scan_id = rand(UInt64)
+    scan_flag = true
+    E_c = p.E 
+    E_del = (E_c[2] - E_c[1])/p.E_bin_width
+    while scan_flag
+        j, jj, jjj = get_scan_idx(p, scan_id)
+        if (j, jj, jjj) == (0, 0, 0)
+            println("Nothing to scan. Terminate")
+            break
+        end
+
+        #----------------------------- START DIAGONALIZATION -----------------------------#
+        println("start diagonalizing at index: ", (j, jj, jjj))
+        H, U = ham_fe(ltc, -2., 0., p.θ[j]) # Fully entangled hamiltonian
+        
+
+        # Allocate Empty dataframe
+        df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
+        for t in 1:nt, k in 1:length(p.l), kk in 1:length(p.q)
+            insertcols!(df[t], col_str[k, kk] => Float64[])
+        end
+
+        @Threads.threads for r in 1:p.R÷p.nev # Realizations
+            er = true
+            er_num = 0
+            while er
+                er_num == 5 && error("5 attempts faild.")
+                try
+                    x = Threads.threadid()
+                    
+                    #---- Create scale free model ----#
+                    H_dis = makesym2d(ltc, H, p.V1, p.V2, rng = rng[x])
+                    D = Diagonal(dis(p.L^2, p.W[jj], rng[x]))
+                    @views H_prj = project(U'*(H_dis + D)*U)
+                    droptol!(H_prj, 1E-14)
+                    H_prj = Hermitian(H_prj)
+
+                    #---- Lanczos method with shift-and-invert method ----#
+                    lmap = shift_invert_linear_map(H_prj, E_c[jjj]) 
+                    e_inv, psi, info = eigsolve(lmap, 2p.L^2, p.nev, :LM, ishermitian = true, krylovdim = max(30, 2p.nev + 1));
+                    e = 1 ./ (p.L^2*real.(e_inv)) .+ E_c[jjj]
+                    psi = reduce(hcat, psi)
+
+                    #---- Crop energies outside the energy bins ----#
+                    idx = findall(x -> (E_c[jjj] - E_del) < x < (E_c[jjj] + E_del), e)
+                    @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 10), r = fill(r, length(idx)))
+
+                    # Push PN
+                    for k in 1:length(p.l), kk in 1:length(p.q)
+                        @views insertcols!(df_temp, col_str[k, kk] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx[k], q = p.q[kk]), sigdigits = 10))
+                    end
+                    append!(df[x], df_temp)
+                    er = false
+                catch e
+                    println("There was an error: ", e.msg)
+                    er_num += 1
+                    continue
+                end
+            end
+        end
+        CSV.write(generate_fn(p.L, j, jj, jjj)*".csv", vcat(df...))
+        rm(generate_fn(p.L, j, jj, jjj)*"_temp_$(scan_id).csv")
     end
 end
