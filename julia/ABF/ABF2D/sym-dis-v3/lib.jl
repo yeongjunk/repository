@@ -163,7 +163,7 @@ end
 
 function missing_idx_finder(p::Params)
     idcs = Tuple{Int64, Int64, Int64}[]
-    lists = glob("L*_Th*_W*_E*.csv")
+    lists = glob("L$(p.L)/L*_Th*_W*_E*.csv")
     miss_idx = (0, 0, 0)
     for i in 1:length(lists)
         fn = split(split(lists[i], ".")[1], "_")
@@ -194,7 +194,7 @@ function get_scan_idx(p::Params, scan_id::UInt64)
         return (j, jj, jjj)	
     end
 
-    fn = generate_fn(p.L,j, jj, jjj)
+    fn = "L$(p.L)"*generate_fn(p.L,j, jj, jjj)
     CSV.write(fn*"_temp_$(scan_id).csv", DataFrame())
     scan_overlap = glob(fn*"_temp_*.csv")
     sleep(3rand())
@@ -282,8 +282,11 @@ function abf2d_scan(p::Params, p_E::EParams)
                 end
             end
         end
-        CSV.write(generate_fn(p.L, j, jj, jjj)*".csv", vcat(df...))
-        rm(generate_fn(p.L, j, jj, jjj)*"_temp_$(scan_id).csv")
+        if !isdir("L$(p.L)")
+            mkdir("L$(p.L)")
+        end
+        CSV.write("L$(p.L)/"*generate_fn(p.L, j, jj, jjj)*".csv", vcat(df...))
+        rm("L$(p.L)"*generate_fn(p.L, j, jj, jjj)*"_temp_$(scan_id).csv")
     end
 end
 
@@ -354,7 +357,8 @@ function abf2d_scan(p::Params)
                 end
             end
         end
-        CSV.write(generate_fn(p.L, j, jj, jjj)*".csv", vcat(df...))
-        rm(generate_fn(p.L, j, jj, jjj)*"_temp_$(scan_id).csv")
+
+        CSV.write("L$(p.L)/"*generate_fn(p.L, j, jj, jjj)*".csv", vcat(df...))
+        rm("L$(p.L)"*generate_fn(p.L, j, jj, jjj)*"_temp_$(scan_id).csv")
     end
 end
