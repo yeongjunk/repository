@@ -214,6 +214,7 @@ struct EParams
 end
 
 function abf2d_scan(p::Params, p_E::EParams)
+    mkpath("L$(p.L)")
     col_str = generate_col_names(p)
     nt = Threads.nthreads()
     rng = [MersenneTwister(p.seed + i) for i in 1:nt]
@@ -282,15 +283,13 @@ function abf2d_scan(p::Params, p_E::EParams)
                 end
             end
         end
-        if !isdir("L$(p.L)")
-            mkdir("L$(p.L)")
-        end
         CSV.write("L$(p.L)/"*generate_fn(p.L, j, jj, jjj)*".csv", vcat(df...))
         rm("L$(p.L)/"*generate_fn(p.L, j, jj, jjj)*"_temp_$(scan_id).csv")
     end
 end
 
 function abf2d_scan(p::Params)
+    mkpath("L$(p.L)")
     col_str = generate_col_names(p)
     nt = Threads.nthreads()
     rng = [MersenneTwister(p.seed + i) for i in 1:nt]
