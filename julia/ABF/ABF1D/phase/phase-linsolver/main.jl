@@ -1,9 +1,7 @@
 using Distributed
 using JSON, ArgParse
-using CSV
-using DataFrames
+using CSV, DataFrames
 using SharedArrays
-using DelimitedFiles
 @everywhere using LinearAlgebra
 @everywhere using MultiFloats
 @everywhere MultiFloats.use_bigfloat_transcendentals()
@@ -35,7 +33,7 @@ function parse_commandline()
         "--out"
             help = "Output file name"
             arg_type = String
-            default = "gr.dat"
+            default = "gr.csv"
     end
 
     return parse_args(s)
@@ -54,7 +52,7 @@ function main()
     p = read_config(config)
     println(nprocs())
     @time g_r = scan_gr(p)
-    writedlm(args["out"], g_r)
+    CSV.write(args["out"],DataFrame(r = vec(1:length(g_r)), gr =  g_r))
 end
 
 main()

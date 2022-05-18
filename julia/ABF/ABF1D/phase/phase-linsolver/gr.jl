@@ -51,7 +51,7 @@ end
 """
 (parallel version) Correlation averaged over j and realization. This is called whenever the input argument rng is an array of rngs.
 """
-function cor_tmm(;θ::F = 0.25,  L::Integer = 10000, R::Integer = 10, rng::Vector{rngs} = Random.GLOBAL_RNG) where {F <: AbstractFloat, rngs <: AbstractRNG}
+function cor_tmm(;θ::F = 0.25,  L::Integer = 10000, R::Integer = 10, rng::Vector{rngs} = [Random.GLOBAL_RNG]) where {F <: AbstractFloat, rngs <: AbstractRNG}
     cutoff_wf_1 = 1
     cutoff_wf_2 = L
     len_cutoff = cutoff_wf_2 - cutoff_wf_1 + 1
