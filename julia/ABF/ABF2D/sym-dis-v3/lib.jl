@@ -338,7 +338,7 @@ function abf2d_scan(p::Params)
                     H_prj = Hermitian(H_prj)
 
                     #---- Lanczos method with shift-and-invert method ----#
-                    lmap = shift_invert_linear_map(H_prj, E_c[jjj], 2p.L^2) 
+                    lmap = shift_invert_linear_map(H_prj, E_c[jjj], c = 2p.L^2) 
                     e_inv, psi, info = eigsolve(lmap, 2p.L^2, p.nev, :LM, ishermitian = true, krylovdim = max(30, 2p.nev + 1));
                     e = 1 ./ (2p.L^2*real.(e_inv)) .+ E_c[jjj]
                     psi = reduce(hcat, psi)
