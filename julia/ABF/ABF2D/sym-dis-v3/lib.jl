@@ -299,7 +299,11 @@ function abf2d_scan(p::Params)
     scan_id = rand(UInt64)
     scan_flag = true
     E_c = p.E 
-    E_del = (E_c[2] - E_c[1])/p.E_bin_width
+    if length(E_c) > 1
+        E_del = (E_c[2] - E_c[1])/p.E_bin_width
+    else
+        E_del = 1/p.E_bin_width 
+    end
     while scan_flag
         j, jj, jjj = get_scan_idx(p, scan_id)
         if (j, jj, jjj) == (0, 0, 0)
