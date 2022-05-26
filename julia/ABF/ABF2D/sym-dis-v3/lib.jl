@@ -13,8 +13,8 @@ include("./params.jl") # read parameters from configuration file
 """
 Linear map for A-IE
 """
-function shift_invert_linear_map(A, E)
-    F = factorize(A-E*I(size(A, 1)))
+function shift_invert_linear_map(A, E; c = 1.)
+    F = factorize(c*A-E*I(size(A, 1)))
     LinearMap{eltype(A)}((y, x) -> ldiv2!(y, F, x), size(A, 1), ismutating = true, ishermitian = true)
 end
 
@@ -338,9 +338,9 @@ function abf2d_scan(p::Params)
                     H_prj = Hermitian(H_prj)
 
                     #---- Lanczos method with shift-and-invert method ----#
-                    lmap = shift_invert_linear_map(H_prj, E_c[jjj]) 
+                    lmap = shift_invert_linear_map(H_prj, E_c[jjj], 2p.L^2) 
                     e_inv, psi, info = eigsolve(lmap, 2p.L^2, p.nev, :LM, ishermitian = true, krylovdim = max(30, 2p.nev + 1));
-                    e = 1 ./ (p.L^2*real.(e_inv)) .+ E_c[jjj]
+                    e = 1 ./ (2p.L^2*real.(e_inv)) .+ E_c[jjj]
                     psi = reduce(hcat, psi)
 
                     #---- Crop energies outside the energy bins ----#
