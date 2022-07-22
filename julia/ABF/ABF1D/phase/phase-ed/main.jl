@@ -13,7 +13,7 @@ using PN
 LinearAlgebra.BLAS.set_num_threads(Threads.nthreads())
 
 ENV["JULIA_COPY_STACKS"] = 1
-include("./lanczos.jl") # read parameters from configuration file
+include("./ed.jl") # read parameters from configuration file
 
 function main(ARGS)
     opts = ArgParseSettings(description="Scan and compute pn for all parameters of nu=2 ABF")

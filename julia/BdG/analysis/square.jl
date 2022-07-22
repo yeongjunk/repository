@@ -12,7 +12,7 @@ relativex(r; sp::Int=1) = relative(Plots.xlims, r; sp=sp)
 relativey(r; sp::Int=1) = relative(Plots.ylims, r; sp=sp)
 
 
-dir = "/Users/pcs/data/BdG/square/"
+dir = "/Users/kimyeongjun/data/BdG/square/"
 
 fn_2 = ["bdgsquare-W4.0-ga2.01-nev1-R50-L40.csv"
     "bdgsquare-W4.0-ga2.01-nev1-R50-L80.csv"
@@ -67,8 +67,7 @@ marker = (:circle, 3., 1., stroke(-0.5, 1., :black))
 line = (:line, :solid, 2.5)
 
 L = ["40" "80" "120" "160" "200" "500"]
-
-df_n = df_5
+L_int = [40, 80, 120, 160, 200, 500]
 function plot_pn(df, n)
     p1 = plot(df[1].λ, df[1].pn, yaxis = :log10, m = marker, line = line, label = L"L = %$(L[1])")
     for i in 2:length(df)
@@ -80,17 +79,31 @@ function plot_pn(df, n)
     annotate!(p1, sp=1,[(relativex(0.5; sp=1), relativey(0.6; sp=1), L"ga = %$n", 25)])
     return p1
 end
+
+
+
 p = plot_pn(df_2, 2)
 p1 = plot_pn(df_5, 5)
-p2 = plot_pn(df_40, 40)
-p_full = plot(p1, p2, size = (1200, 400))
-savefig(p_full, dir*"figures/ga_5_40.pdf")
+p2 = plot_pn(df_20, 20)
+p3 = plot_pn(df_40, 40)
+p_full = plot(p,p1,p2,p3, size = (1200, 800))
+savefig(p_full, dir*"figures/ga_full.pdf")
+log_L = log.(L_int)
+df_full = [df_2, df_5, df_20, df_40]
+n = [2, 5, 20, 40]
+for j in 1:length(df_full) 
+df_n = df_full[j]
+tau = Array{Float64}[]
+for i in 1:length(df_n)
+    push!(tau, log.(df_n[i].pn)./log_L[i])
+end    
 
+p_tau = plot()
+for i in 1:length(tau)
+    plot!(p_tau, df_n[i].λ, tau[i], line = line, marker = marker, label = "L = $(L_int[i])")
+end
+ylabel!(L"\tau")
+annotate!(p_tau, sp=1, [(relativex(0.5;sp=1), relativey(0.6;sp=1), L"ga = %$(n[j])", 25)])
+savefig(p_tau, dir*"tau$(j).pdf")
+end
 
-
-log_pn = log.([df_n[i].pn[end÷2] for i in 1:length(df_n)])
-log_L = log.([40; 80; 120; 160; 200; 500])
-
-α = diff(log_pn)./diff(log_L)
-plot(α, line = line, marker = marker)
-ylabel!(L"\alpha")

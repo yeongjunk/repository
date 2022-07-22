@@ -106,13 +106,14 @@ end
 
 function abf_scan(p::Params)
     @unpack l, L, θ, W, E, q, seed, R, nev, V, E_window_width, num_blas, energy_path = p
+    E_norm = copy(E)
     mkpath("L$(L)")
     col_str = generate_col_names(p)
     nt = Threads.nthreads()
-    rng = [MersenneTwister(p.seed + i) for i in 1:nt]
+    rng = MersenneTwister(seed) 
     ltc_p = Lattice1D(L, 1)
     ltc = Lattice1D(L, 2)
-    boxidx = [box_inds(ltc_p, li) for li in p.l]
+    boxidx = [box_inds(ltc_p, li) for li in l]
     max_E = get_energy_file(p)
     println("Energ file is obtained")
     for i in 1:length(θ)
@@ -120,45 +121,35 @@ function abf_scan(p::Params)
         H = convert.(ComplexF64, H)
         for j in 1:length(W)
             E .= 0.95*max_E[i, j]*E
-            df = [DataFrame(E = Float64[], r = Int64[]) for i in 1:nt]
-            for t in 1:nt, u in 1:length(l), v in 1:length(p.q)
-                insertcols!(df[t], col_str[u, v] => Float64[])
+            E_window_width = (2/E_window_width)*max_E[i, j]
+            df = [DataFrame(E = Float64[], r = Int64[]) for k in 1:length(E)]
+            for k in 1:length(E), u in 1:length(l), v in 1:length(p.q)
+                insertcols!(df[k], col_str[u, v] => Float64[])
             end
-            @Threads.threads for r in 1:p.R÷p.nev# Realizations
-                er = true
-                er_num = 0
-                while er
-                    er_num == 5 && error("5 attempts faild.")
-                    try
-                        x = Threads.threadid()
-                        D_onsite = Diagonal(rand(rng[x], 2p.L) .- 0.5)
-                        D_phase = phase_dis(H, V = 1, rng = rng[x])
+            for r in 1:R # Realizations
+                D_onsite = Diagonal(rand(rng, 2p.L) .- 0.5)
+                D_phase = phase_dis(H, V = 1, rng = rng)
+                @views H_prj = project(U'*(W[j]*D_onsite + V*D_phase)*U)
+                droptol!(H_prj, 1E-14)
+                e, psi = eigen!(Hermitian(Matrix(H_prj)))
 
-                        @views H_prj = project(U'*(W[j]*D_onsite + V*D_phase)*U)
-                        droptol!(H_prj, 1E-14)
-                        e, psi = lanczos_wrap(H, nev, E[k])
-
-                        #Crop energies that are outside the energy bins
-                        e_filter = x -> (E[k] - E_window_width) <  x < (E[k] + E_window_width)
-                        idx  = findall(e_filter, e)
-                        filter!(e, e_filter)
-                        psi = reduce(hcat, psi[idx])
-
-                        df_temp = DataFrame(E = round.(e, sigdigits = 10), r = fill(r, length(idx)))
-                        #Push PN
-                        for t in 1:length(p.l), u in 1:length(p.q)
-                            insertcols!(df_temp, col_str[t, u] => round.(compute_box_iprs(ltc_p, psi, boxidx[k], q = q[u]), sigdigits = 10))
-                        end
-                        append!(df[x], df_temp)
-                        er = false
-                    catch e
-                        println("There was an error: ", e.msg)
-                        er_num += 1
-                        continue
+                #Crop energies that are outside the energy bins
+                for k in 1:length(E) 
+                    e_filter = x -> (E[k] - E_window_width) < x < (E[k] + E_window_width)
+                    idx  = findall(e_filter, e)
+                    @views df_temp = DataFrame(E = round.(e[idx], sigdigits = 10), r = fill(r, length(idx)))
+                    #Push PN
+                    for t in 1:length(l), u in 1:length(q)
+                        @views insertcols!(df_temp, col_str[t, u] => round.(compute_box_iprs(ltc_p, psi[:, idx], boxidx[t], q = q[u]), sigdigits = 10))
                     end
+                    append!(df[k], df_temp)
                 end
             end
-            CSV.write("L$(L)/Th$(lpad(i, 2, "0"))_W$(lpad(j, 2, "0"))_E$(lpad(k, 2, "0")).csv", vcat(df...))
+            for k in 1:length(E)
+                savefn = "L$(L)/Th$(lpad(i, 2, "0"))_W$(lpad(j, 2, "0"))_E$(lpad(k, 2, "0")).csv"
+                CSV.write(savefn, df[k])
+                println("Written:", savefn)
+            end
         end
     end
 end

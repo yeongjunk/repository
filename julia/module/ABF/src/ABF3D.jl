@@ -134,6 +134,10 @@ function ham_fe(ltc::Lattice3D, Ea::F, Eb::F, θ::F) where F <: AbstractFloat
     return H_fe, U
 end
 
+function ham_fe(L::Integer, M::Integer, N::Integer, Ea::F, Eb::F, θ::F) where F <: AbstractFloat
+    return ham_fe(Lattice3D(L, M, N, 2), Ea, Eb, θ) 
+end
+
 function ham_fe(ltc::Lattice3D, Ea, Eb, θ::F, ϕ1::F, ϕ2::F) where F <: AbstractFloat
     U = U_fe(ltc, θ, ϕ1, ϕ2)
     H_fd = ham_fd(ltc, Ea, Eb)

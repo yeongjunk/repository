@@ -124,6 +124,13 @@ function ham_fe(ltc::Lattice1D, Ea::F, Eb::F, θ::F) where F <: AbstractFloat
 end
 
 """
+Real unitary parameters. This is the main FE construction
+"""
+function ham_fe(L::Integer, Ea::F, Eb::F, θ::F) where F <: AbstractFloat
+    return ham_fe(Lattice1D(L, 2), Ea, Eb, θ) 
+end
+
+"""
 More general complex LUT. You won't need it.
 """
 function ham_fe(ltc::Lattice1D, Ea::F, Eb::F, θ::F, ϕ1::F, ϕ2::F) where F <: AbstractFloat

@@ -1,6 +1,6 @@
 module Binning
-
-    export binning, binning_unsorted, binning_sorted
+    using StatsBase
+    export binning, binning_unsorted, binning_sorted, binned_mean
 
     @doc """
     Bin x of given bin edge given by x_edges
@@ -64,5 +64,20 @@ module Binning
             lbl = binning_unsorted(x, x_edges)
         end
         return lbl
+    end
+    
+    function binned_mean(x::AbstractArray, y::AbstractArray{F}, x_edges) where F
+        n = length(x_edges)
+        lbl = binning(x, x_edges)
+        y_mean = Array{F}(undef, n-1)
+        y_std = similar(y_mean)
+        y_num = Array{Int64}(undef, n - 1)
+        for i in 1:n-1
+            idx = findall(x -> x == i, lbl)            
+            y_mean[i] = mean(y[idx]) 
+            y_num[i] = length(y[idx])
+            y_std[i] = std(y[idx])
+        end
+        return y_mean, y_std, y_num
     end
 end
