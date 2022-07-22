@@ -26,7 +26,7 @@ function main(ARGS)
     popts   = parse_args(opts)
     config  = JSON.parsefile(popts["c"])
     p = readconfig(config)
-    abf_scan(p)
+    @time abf_scan(p)
 end
 
 main(ARGS)
