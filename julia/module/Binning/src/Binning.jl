@@ -1,6 +1,6 @@
 module Binning
     using StatsBase
-    export binning, binning_unsorted, binning_sorted, binned_mean
+    export binning, binning_unsorted, binning_sorted, binned_mean, binned_histogram, binned_histogram!
 
     @doc """
     Bin x of given bin edge given by x_edges
@@ -80,4 +80,28 @@ module Binning
         end
         return y_mean, y_std, y_num
     end
+
+    function binned_histogram(x, x_edges)
+        y = zeros(Int64, length(x_edges)- 1)
+        binned_histogram!(y, x, x_edges)
+        return y
+    end
+
+    function binned_histogram!(y, x, x_edges)
+        @assert issorted(x)
+        lbl = binning(x, x_edges)
+        filter!(t -> t != 0, lbl)
+        prev_ind = 1
+        for i in 1:length(x_edges) - 1
+            ind = searchsortedlast(lbl, i)
+            y[i] += (ind - prev_ind + 1)
+            prev_ind = ind + 1
+        end
+    end
+    
+#    function hist_coarse(y, x_edges, x_edges_2)
+#        @assert x_edges_2 ⊆ x_edges 
+#        n = length(x_edges_2)
+#        findfirst(x_edges_2)
+#    end
 end
