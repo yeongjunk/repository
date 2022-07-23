@@ -62,7 +62,7 @@ end
 
 function generate_energy_file(p::Params)
     mkpath(p.energy_path)
-    @unpack L, θ, W, q, seed, R, V, num_blas = p
+    @unpack L, θ, W, seed, R, V, num_blas = p
     rng = MersenneTwister(seed)
     max_E = Array{Float64}(undef, length(θ), length(W)) 
     for i in 1:length(θ), j in 1:length(W)
