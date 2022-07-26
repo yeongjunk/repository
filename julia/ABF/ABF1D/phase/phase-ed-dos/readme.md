@@ -1,3 +1,3 @@
-2022/2/23
+2022/7/26
 1D nu = 2 weak phase disordered ABF, scale free model.
-It finds the eigenstates using lanczos method and calculate IPRs
+eigenvalues and dos

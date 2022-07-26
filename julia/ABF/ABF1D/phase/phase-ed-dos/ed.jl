@@ -102,12 +102,12 @@ function abf_scan(p::Params)
     max_E = get_energy_file(p)
     println("Energ file is obtained")
     for i in 1:length(θ)
-        H, U = ham_fe(ltc, -2., 0., θ[i]) # Fully entangled hamiltonian
-        H = convert.(ComplexF64, H)
+        H,U=ham_fe(ltc, -2., 0., θ[i]) # Fully entangled hamiltonian
+        H=convert.(ComplexF64, H)
         for j in 1:length(W)
-            E_edges.= max_E[i, j]*E_edges
-            E_midpoints = midpoints(E_edges)
-            df = DataFrame(E =E_midpoints, E_idx = collect(1:length(E_midpoints)), weight = zeros(Int64, length(E_midpoints)), dos = zeros(Float64, length(E_midpoints)))
+            E_edges=max_E[i,j]*p.E_edges
+            E_midpoints=midpoints(E_edges)
+            df = DataFrame(E=E_midpoints,E_idx=collect(1:length(E_midpoints)),weight=zeros(Int64,length(E_midpoints)),dos=zeros(Float64,length(E_midpoints)))
              
             for r in 1:R # Realizations
                 D_onsite = Diagonal(rand(rng, 2p.L) .- 0.5)
