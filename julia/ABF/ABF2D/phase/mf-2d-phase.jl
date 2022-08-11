@@ -53,7 +53,6 @@ function hop_dis(H; V = 1., rng = nothing)
     end
     return D + D'
 end
-
 function GIPR(psi; q = 2)
     return compute_iprs(psi, q = q)
 end

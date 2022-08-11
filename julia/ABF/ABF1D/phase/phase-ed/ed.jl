@@ -120,7 +120,7 @@ function abf_scan(p::Params)
         H, U = ham_fe(ltc, -2., 0., θ[i]) # Fully entangled hamiltonian
         H = convert.(ComplexF64, H)
         for j in 1:length(W)
-            E .= 0.95*max_E[i, j]*E
+            E .= 0.95*max_E[i, j]*p.E
             E_window_width = (2/E_window_width)*max_E[i, j]
             df = [DataFrame(E = Float64[], r = Int64[]) for k in 1:length(E)]
             for k in 1:length(E), u in 1:length(l), v in 1:length(p.q)
