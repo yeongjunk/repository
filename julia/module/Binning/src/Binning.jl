@@ -79,7 +79,9 @@ function binning(x::AbstractArray, x_edges::AbstractArray)
     end
     return lbl
 end
-
+"""
+Compute the x-resolved mean, standard deviations, and numbers(histogram) of y = f(x), using the edge of the bins x_edges
+"""
 function binned_mean(x::AbstractArray, y::AbstractArray{F}, x_edges::AbstractArray) where F
     n = length(x_edges)
     lbl = binning(x, x_edges)

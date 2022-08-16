@@ -1,10 +1,11 @@
 # A convenient tool for indexing vectors and matrices of lattices. 
 
-module Lattice
+module Lattices
+    abstract type Lattice end
     @doc """
     1D Lattice
     """
-    struct Lattice1D{T<:Integer}
+    struct Lattice1D{T<:Integer} <: Lattice
         N::T
         U::T
     end
@@ -12,7 +13,7 @@ module Lattice
     @doc """
     2D Lattice
     """
-    struct Lattice2D{T<:Integer}
+    struct Lattice2D{T<:Integer} <: Lattice
         M::T
         N::T
         U::T
@@ -21,7 +22,7 @@ module Lattice
     @doc """
     3D Lattice
     """
-    struct Lattice3D{T<:Integer}
+    struct Lattice3D{T<:Integer} <: Lattice
         L::T
         M::T
         N::T
@@ -122,5 +123,5 @@ module Lattice
         return (l+1, m+1, n+1, u+1)
     end
 
-    export Lattice3D, Lattice2D, Lattice1D, index, site
+    export Lattice, Lattice3D, Lattice2D, Lattice1D, index, site
 end
