@@ -7,7 +7,7 @@ export box_indices, box_coarse
 """
 Return box indices with box size b. First dimension is the box indices, second dimension is different boxes
 """
-function box_indices(ltc::Lattice1D, b)
+function box_indices(ltc::Lattice1D, b::Integer)
     @assert ltc.N%b == 0
     L = ltc.N
     U = ltc.U
@@ -28,7 +28,7 @@ end
 """
 Return box indices with box size b. First dimension is the box indices, second dimension is different boxes
 """
-function box_indices(ltc::Lattice2D, b)
+function box_indices(ltc::Lattice2D, b::Integer)
     @assert ltc.N%b == 0
     L = ltc.N
     U = ltc.U
@@ -51,7 +51,7 @@ end
 """
 Return box indices with box size b. First dimension is the box indices, second dimension is different boxes
 """
-function box_indices(ltc::Lattice3D, b)
+function box_indices(ltc::Lattice3D, b::Integer)
     @assert ltc.N%b == 0 && ltc.L == ltc.M == ltc.N
     L = ltc.N
     U = ltc.U
@@ -72,7 +72,7 @@ function box_indices(ltc::Lattice3D, b)
 end
 
 """
-Receive the density p and return coarsed p with box indices.
+Transform the density vector(or columns vectors) p into coarsed p with box indices.
 """
 function box_coarse(p, box_inds)
     @assert size(p, 1) == length(box_inds) 

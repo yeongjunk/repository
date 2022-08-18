@@ -1,6 +1,6 @@
 module ABF
-    import Lattice.Lattice1D, Lattice.Lattice2D, Lattice.Lattice3D,
-        Lattice.index, Lattice.site
+    import Lattices.Lattice1D, Lattices.Lattice2D, Lattices.Lattice3D,
+        Lattices.index, Lattices.site
     using LinearAlgebra
     using SparseArrays
 
@@ -17,5 +17,5 @@ module ABF
         return H_p
     end
 
-    export project!, project, Lattice
+    export project!, project, Lattices
 end

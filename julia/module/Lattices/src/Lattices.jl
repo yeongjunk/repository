@@ -2,6 +2,7 @@
 
 module Lattices
     abstract type Lattice end
+
     @doc """
     1D Lattice
     """

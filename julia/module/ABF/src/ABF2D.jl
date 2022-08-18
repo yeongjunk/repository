@@ -7,7 +7,13 @@ function ham_fd(ltc::Lattice2D, Ea::F, Eb::F) where F
     return spdiagm(0 => repeat([F(Ea), F(Eb)], ltc.M*ltc.N))
 end
 
+function ham_fd(M::Int64, N::Int64, Ea::F, Eb::F) where F 
+    ltc = Lattice2D(M, N, 2)
+    return ham_fd(ltc, Ea, Eb) 
+end
+
 function LUT(ltc::Lattice2D, θ::F; pirad = true) where F 
+    @assert ltc.U == 2
     num_sites = ltc.M*ltc.N*ltc.U
     if pirad 
         cos_θ = cospi(θ)
@@ -38,7 +44,15 @@ function LUT(ltc::Lattice2D, θ::F; pirad = true) where F
     return sparse(I, J, V, num_sites, num_sites)
 end
 
+
+function LUT(M::Int64, N::Int64, θ::F; pirad = true) where F 
+    ltc = Lattice2D(M, N, 2)
+    return LUT(ltc, θ, pirad=pirad) 
+end
+
+
 function LUT(ltc::Lattice2D, θ::F, ϕ1::F, ϕ2::F) where F
+    @assert ltc.U == 2
     num_sites = ltc.M*ltc.N*ltc.U
     cos_θ = cospi(θ)
     sin_θ = sinpi(θ)
@@ -68,7 +82,13 @@ function LUT(ltc::Lattice2D, θ::F, ϕ1::F, ϕ2::F) where F
     return sparse(I, J, V, num_sites, num_sites)
 end
 
+function LUT(M::Int64, N::Int64, θ::F, ϕ1::F, ϕ2::F; pirad = true) where F 
+    ltc = Lattice2D(M, N, 2)
+    return LUT(ltc, θ, ϕ1, ϕ2,  pirad=pirad) 
+end
+
 function redef1(ltc::Lattice2D; vartype = Float64)
+    @assert ltc.U == 2
     num_sites = ltc.M*ltc.N*ltc.U
     I = Int64[]; J = Int64[]; V = vartype[]
     for m in 1:ltc.M, n in 1:ltc.N
@@ -83,45 +103,9 @@ function redef1(ltc::Lattice2D; vartype = Float64)
     return sparse(I, J, V, num_sites, num_sites)
 end
 
-
-function redef1_obc(ltc::Lattice2D; vartype = Float64)
-    num_sites = ltc.M*ltc.N*ltc.U
-    I = Int64[]; J = Int64[]; V = vartype[]
-    for m in 1:ltc.M, n in 1:ltc.N
-        push!(I, index(ltc, (m,n,1)))
-        push!(J, index(ltc, (m,n,1)))
-        push!(V, one(vartype))
-        if n != ltc.N 
-            push!(I, index(ltc, (m,n,2)))
-            push!(J, index(ltc, (m,n+1,2)))
-            push!(V, one(vartype))
-        else
-            push!(I, index(ltc, (m,n,2)))
-            push!(J, index(ltc, (m,n,2)))
-            push!(V, one(vartype))
-        end
-    end
-    return sparse(I, J, V, num_sites, num_sites)
-end
-
-function redef2_obc(ltc::Lattice2D; vartype = Float64)
-    num_sites = ltc.M*ltc.N*ltc.U
-    I = Int64[]; J = Int64[]; V = vartype[]
-    for m in 1:ltc.M, n in 1:ltc.N
-        push!(I, index(ltc, (m,n,1)))
-        push!(J, index(ltc, (m,n,1)))
-        push!(V, one(vartype))
-        if m != ltc.M
-            push!(I, index(ltc, (m,n,2)))
-            push!(J, index(ltc, (m+1,n,2)))
-            push!(V, one(vartype))
-        else
-            push!(I, index(ltc, (m,n,2)))
-            push!(J, index(ltc, (m,n,2)))
-            push!(V, one(vartype))
-        end
-    end
-    return sparse(I, J, V, num_sites, num_sites)
+function redef1(M::Int64, N::Int64; vartype = Float64)
+    ltc = Lattice2D(M, N, 2)
+    return redef1(ltc, vartype=vartype)
 end
 
 function redef2(ltc::Lattice2D; vartype = Float64)
@@ -139,6 +123,11 @@ function redef2(ltc::Lattice2D; vartype = Float64)
     return sparse(I, J, V, num_sites, num_sites)
 end
 
+function redef2(M::Int64, N::Int64; vartype = Float64)
+    ltc = Lattice2D(M, N, 2)
+    return redef2(ltc, vartype=vartype)
+end
+
 function U_fe(ltc::Lattice2D, θ::F; pirad=true) where F
     U1 = LUT(ltc,θ,pirad=pirad)
     T1 = redef1(ltc, vartype = F)
@@ -146,20 +135,10 @@ function U_fe(ltc::Lattice2D, θ::F; pirad=true) where F
     return U1*T2*U1*T1*U1
 end
 
-function U_fe(ltc::Lattice2D, θ::F, ϕ1::F, ϕ2::F) where F 
-    U1 = LUT(ltc,θ, ϕ1, ϕ2)
-    T1 = redef1(ltc, vartype = F)
-    T2 = redef2(ltc, vartype = F)
-    return U1*T2*U1*T1*U1
+function U_fe(M::Int64, N::Int64, θ::F; pirad=true) where F
+    ltc = Lattice2D(M, N, 2)
+    return U_fe(ltc, θ, pirad=pirad)
 end
-
-function U_fe_obc(ltc::Lattice2D, θ::F) where F 
-    U1 = LUT(ltc,θ)
-    T1 = redef1_obc(ltc, vartype = F)
-    T2 = redef2_obc(ltc, vartype = F)
-    return U1*T2*U1*T1*U1
-end
-
 
 function ham_fe(ltc::Lattice2D, Ea::F, Eb::F, θ::F; pirad=true) where F 
     U = U_fe(ltc, θ, pirad=pirad)
@@ -168,17 +147,7 @@ function ham_fe(ltc::Lattice2D, Ea::F, Eb::F, θ::F; pirad=true) where F
     return H_fe, U
 end
 
-function ham_fe(ltc::Lattice2D, Ea::F, Eb::F, θ::F, ϕ1::F, ϕ2::F) where F 
-    U = U_fe(ltc, θ, ϕ1, ϕ2)
-    H_fd = ham_fd(ltc, Ea, Eb)
-    H_fe = U*H_fd*U'
-    return H_fe, U
+function ham_fe(M::Int64, N::Int64, Ea::F, Eb::F, θ::F; pirad=true) where F 
+    ltc = Lattice2D(M, N, 2)
+    return ham_fe(ltc, Ea, Eb, θ, pirad=pirad) 
 end
-
-function ham_fe_obc(ltc::Lattice2D, Ea::F, Eb::F, θ::F) where F 
-    U = U_fe_obc(ltc, θ)
-    H_fd = ham_fd(ltc, Ea, Eb)
-    H_fe = U*H_fd*U'
-    return H_fe, U
-end
-
