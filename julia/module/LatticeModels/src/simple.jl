@@ -3,7 +3,7 @@ using SparseArrays
 
 export chain, square, cubic
 
-function chain(;N::Integer=10, t::F=1., periodic::Bool = true) where F
+function chain(;N::Integer=10, t::F=1.) where F
     ltc = Lattice1D(N, 1)
     I = Int64[]; J=Int64[]; V=F[]
     for n in 1:ltc.N    
