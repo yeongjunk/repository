@@ -21,7 +21,7 @@ end
 
 function readconfig(d::Dict)
     E_max = d["E_max"]
-    E_min = d["E_max"]
+    E_min = d["E_min"]
     R = d["R"]
     nev = d["nev"]
     L = d["L"]
@@ -54,20 +54,19 @@ function scan_2d(p::ScanParameters)
     rng = MersenneTwister(seed)
     # set the energy bins
     E_max  = E_max*cutoff
-    E_min  = E_min
+    E_min  = E_min*cutoff
     E_edges= range(E_min, E_max, length=bins+1)
     E_mids = midpoints(E_edges) 
     # create box-counting indices
     ltc = Lattice2D(L, L, 1)
     box_inds = box_indices(ltc, l)
     iprs_full=Array{Float64}(undef, R, bins)
-
+    println("Started scanning")
     for r in 1:R
         H = Hermitian(ham_sf(L=L, V=V, θ=θ, rng=rng))
         for i in 1:bins
             E, psi=eigs(H, nev=nev, sigma=E_mids[i])
             E = real.(E)
-
             limiter = E_edges[i] .< E .< E_edges[i+1]
             psi = psi[:, findall(limiter)]
             p = abs2.(psi)            
