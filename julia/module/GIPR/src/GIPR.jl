@@ -79,7 +79,7 @@ function box_coarse(p, box_inds)
     end
     
     if typeof(p) <: Vector
-        return vec(p)
+        return vec(p_coarse)
     else
         return p_coarse
     end
