@@ -11,8 +11,8 @@ function chain(;N::Integer=10, t::F=1.) where F
        push!(J, index(ltc, (n-1, 1))) 
        push!(V, -t) 
 
-       push!(I, index(ltc, (n+1, 1))) 
-       push!(J, index(ltc, (n, 1))) 
+       push!(I, index(ltc, (n, 1))) 
+       push!(J, index(ltc, (n+1, 1))) 
        push!(V, -conj(t)) 
     end
     return sparse(I, J, V, ltc.N, ltc.N)

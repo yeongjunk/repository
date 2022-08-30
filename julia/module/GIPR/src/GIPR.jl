@@ -13,7 +13,6 @@ function box_indices(ltc::Lattice1D, b::Integer)
     U = ltc.U
     box_pts = U*b 
     box_num = L÷b 
-    display(box_pts)
     inds = Array{Int64}(undef, box_pts, box_num)
     box_count=1 
     for x in 1:b:L-b+1
@@ -34,7 +33,6 @@ function box_indices(ltc::Lattice2D, b::Integer)
     U = ltc.U
     box_pts = U*b^2 
     box_num = L^2÷b^2 
-    display(box_pts)
     inds = Array{Int64}(undef, box_pts, box_num)
     box_count=1 
     for x in 1:b:L-b+1, y in 1:b:L-b+1
@@ -57,7 +55,6 @@ function box_indices(ltc::Lattice3D, b::Integer)
     U = ltc.U
     box_pts = U*b^3
     box_num = L^3÷b^3 
-    display(box_pts)
     inds = Array{Int64}(undef, box_pts, box_num)
     box_count=1 
     for x in 1:b:L-b+1, y in 1:b:L-b+1, z in 1:b:L-b+1
