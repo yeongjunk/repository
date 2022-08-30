@@ -26,7 +26,7 @@ function readconfig(d::Dict)
     nev = d["nev"]
     L = d["L"]
     l = d["l"]
-    V = d["W"]
+    V = d["V"]
     θ = d["th"]
     cutoff = d["cutoff"]
     bins = d["bins"]
