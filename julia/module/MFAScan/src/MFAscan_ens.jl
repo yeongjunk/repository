@@ -1,17 +1,18 @@
-module TAU
+module MFAScan 
 
-export shift_invert_linear_map, compute_tau
+export shift_invert_linear_map, scan_ταf
 import Statistics: mean, std
 
+using Statistics
 using LinearAlgebra, SparseArrays, KrylovKit
 using LinearMaps
 using Random
-using DataFrames
-using ArgParse, JSON
 using Lattices
 using PN
 using GIPR
-using Statistics
+using MFA.Ensemble
+
+dropmean(A; dims=:) = dropdims(mean(A; dims=dims); dims=dims)
 
 """
 Linear map for A-IE
@@ -29,20 +30,17 @@ R is number of realizations.
 The box-counted PN is computed and averaged over realizations and the given energy window. 
 From this, tau is computed
 Optionally the parameter c is specified if an error occurs
-mode 1 : ensemble average
-mode 2 : typycal average
-mode 3 : ensemble average over average
-mode 4 : compute all modes
 """
 
-function compute_tau(f::Function, params, E_c, E_del, R::Int, nev::Int, ltc::Lattice, L::Int, l::Int; c=1., seed::Int = 1234, isherm = true, mode = 1, q = 2)
+function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice, L::Int; c=1., seed::Int = 1234, isherm::Bool = true, l::Vector{Int} = [1],  q::Vector{Float64} = [2.], R::Int = 10, nev::Int= 10)
     nt = Threads.nthreads()
     rng = [MersenneTwister(seed) for i in 1:nt]
 
-    # Allocate Empty dataframe
-    df = [DataFrame(E = Float64[], iprs = Float64[]) for i in 1:nt]
-
-    box_inds = box_indices(ltc, l)
+    p_MFA = MFAParameters(ltc, l, q)
+    prepare_MFA!(p_MFA)
+    gipr = [Array{Float64}[] for i in 1:nt]
+    μqlnμ = [Array{Float64}[] for i in 1:nt]
+    E_full = [Float64[] for i in 1:nt]
     #----------------------------- DIAGONALIZATION -----------------------------#
     @Threads.threads for r in 1:R # Realizations
         er = true
@@ -51,7 +49,6 @@ function compute_tau(f::Function, params, E_c, E_del, R::Int, nev::Int, ltc::Lat
             num_try == 5 && error("5 attempts faild.")
             try
                 x = Threads.threadid()
-                
                 #---- Create the model ----#
                 H = f(params, rng = rng[x])
                 n = size(H, 1)
@@ -61,19 +58,25 @@ function compute_tau(f::Function, params, E_c, E_del, R::Int, nev::Int, ltc::Lat
 
                 E_inv, psi, _ = eigsolve(lmap, n, nev, :LM, ishermitian=isherm, krylovdim = max(30, 2nev + 1));
                 E = 1 ./ (c*real.(E_inv)) .+ E_c
-
+             
                 #---- Crop energies outside the energy bins ----#
                 idx = findall(x -> (E_c-E_del) <= x <= (E_c+E_del), E)
+                for i in 1:length(idx)
+                    push!(E_full[x], E[idx[i]])
+                end
                 psi = reduce(hcat, psi[idx])
 
+                #---- Compute GIPR ---#
+                gipr_temp = Array{Float64}(undef, size(psi, 2), length(p_MFA.q), length(p_MFA.l))  
+                μqlnμ_temp = similar(gipr_temp) 
 
-                #---- Compute box-counted IPR ---#
-                p = abs2.(psi)            
-                p_coarse = box_coarse(p, box_inds)
-                iprs = compute_iprs(p_coarse, density=true)
-                df_temp = DataFrame(E = E[idx], iprs = iprs)
-                # Push PN
-                append!(df[x], df_temp)
+                for i in 1:size(psi, 2)
+                    gipr_temp[i, :, :], μqlnμ_temp[i, :, :] = compute_gipr_2(p_MFA, psi[:, i])
+                end
+
+                # Push GIPR 
+                push!(gipr[x], gipr_temp)
+                push!(μqlnμ[x], μqlnμ_temp)
                 er = false
             catch e
                 println("There was an error: ", e.msg)
@@ -82,18 +85,18 @@ function compute_tau(f::Function, params, E_c, E_del, R::Int, nev::Int, ltc::Lat
             end # try
         end # while
     end # for loop over Realization
+    E_full = reduce(vcat, E_full)
+    E_mean = mean(E_full)
+    gipr = reduce(vcat, gipr) 
+    μqlnμ = reduce(vcat, μqlnμ) 
+    gipr = reduce(vcat, gipr) 
+    μqlnμ = reduce(vcat, μqlnμ) 
 
-    df_full = DataFrame(E = Float64[], iprs = Float64[])
-    for x in 1:nt
-        append!(df_full, df[x])
-    end
+    gipr_mean = dropmean(gipr, dims = 1)
 
-    E_mean = mean(df_full.E)
-    ipr_mean = mean(df_full.iprs)
-    
-    tau = log(ipr_mean)/log(l/L)
+    τ, α, f_α = compute_ταf(p_MFA, gipr, μqlnμ)
 
-    return E_mean, tau 
+    return E_mean, gipr_mean, μqlnμ, τ, α, f_α 
 end
 
 end # module

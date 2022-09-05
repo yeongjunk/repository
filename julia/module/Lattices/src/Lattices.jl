@@ -6,7 +6,7 @@ module Lattices
     @doc """
     1D Lattice
     """
-    struct Lattice1D{T<:Integer} <: Lattice
+    struct Lattice1D{T <: Integer} <: Lattice
         N::T
         U::T
     end
@@ -14,7 +14,7 @@ module Lattices
     @doc """
     2D Lattice
     """
-    struct Lattice2D{T<:Integer} <: Lattice
+    struct Lattice2D{T <: Integer} <: Lattice
         M::T
         N::T
         U::T
@@ -23,7 +23,7 @@ module Lattices
     @doc """
     3D Lattice
     """
-    struct Lattice3D{T<:Integer} <: Lattice
+    struct Lattice3D{T <: Integer} <: Lattice
         L::T
         M::T
         N::T
