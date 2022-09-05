@@ -1,20 +1,19 @@
-# module MFAScan 
+module Ensemble
 
-# export shift_invert_linear_map, compute_tau
-# import Statistics: mean, std
+export shift_invert_linear_map, scan_ταf
+import Statistics: mean, std
 
 using Statistics
 using LinearAlgebra, SparseArrays, KrylovKit
 using LinearMaps
 using Random
-using DataFrames
-using ArgParse, JSON
 using Lattices
 using PN
 using GIPR
-using MFA.Typical
+using MFA.Ensemble
 
 dropmean(A; dims=:) = dropdims(mean(A; dims=dims); dims=dims)
+
 """
 Linear map for A-IE
 """
@@ -23,6 +22,7 @@ function shift_invert_linear_map(A, E; c = 1., isherm = true)
     F = lu(c*(A - E*I(N)))
     LinearMap{eltype(A)}((y, x) -> ldiv!(y, F, x), size(A, 1), ismutating = true, ishermitian = isherm)
 end
+
 """
 compute_tau(f, p, E_c, E_del, R, nev, L, l; c = 1., seed = 1234) 
 Create Hamiltonian H = f(p; rng=GLOBAL_RNG) and compute nev number of eigenstates at the target energy E_c over the energy window E_del. 
@@ -32,15 +32,15 @@ From this, tau is computed
 Optionally the parameter c is specified if an error occurs
 """
 
-function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice, L::Int; c=1., seed::Int = 1234, isherm::Bool = true, l::Vector{Int} = [1],  q::Vector{Float64} = [2.], R::Int = 10, nev::Int= 10)
+function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice; c=1., seed::Int = 1234, isherm::Bool = true, l::Vector{Int} = [1],  q::Vector{Float64} = [2.], R::Int = 10, nev::Int= 10)
+    L = ltc.N
     nt = Threads.nthreads()
     rng = [MersenneTwister(seed) for i in 1:nt]
 
     p_MFA = MFAParameters(ltc, l, q)
     prepare_MFA!(p_MFA)
-    τ = [Array{Float64}[] for i in 1:nt]
-    α = [Array{Float64}[] for i in 1:nt]
-    f_α = [Array{Float64}[] for i in 1:nt]
+    gipr = [Array{Float64}[] for i in 1:nt]
+    μqlnμ = [Array{Float64}[] for i in 1:nt]
     E_full = [Float64[] for i in 1:nt]
     #----------------------------- DIAGONALIZATION -----------------------------#
     @Threads.threads for r in 1:R # Realizations
@@ -68,18 +68,16 @@ function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice, L::Int; c=1.,
                 psi = reduce(hcat, psi[idx])
 
                 #---- Compute GIPR ---#
-                τ_temp = Array{Float64}(undef, size(psi, 2), length(p_MFA.q), length(p_MFA.l))  
-                α_temp = similar(τ_temp) 
-                f_α_temp = similar(τ_temp) 
+                gipr_temp = Array{Float64}(undef, size(psi, 2), length(p_MFA.q), length(p_MFA.l))  
+                μqlnμ_temp = similar(gipr_temp) 
 
                 for i in 1:size(psi, 2)
-                    τ_temp[i, :, :], α_temp[i, :, :], f_α_temp[i, :, :] = compute_ταf(p_MFA, psi[:, i])
+                    gipr_temp[i, :, :], μqlnμ_temp[i, :, :] = compute_gipr_2(p_MFA, psi[:, i])
                 end
 
                 # Push GIPR 
-                push!(τ[x], τ_temp)
-                push!(α[x], α_temp)
-                push!(f_α[x], f_α_temp)
+                push!(gipr[x], gipr_temp)
+                push!(μqlnμ[x], μqlnμ_temp)
                 er = false
             catch e
                 println("There was an error: ", e.msg)
@@ -88,18 +86,18 @@ function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice, L::Int; c=1.,
             end # try
         end # while
     end # for loop over Realization
-    println("Hello!")
     E_full = reduce(vcat, E_full)
     E_mean = mean(E_full)
+    gipr = reduce(vcat, gipr) 
+    μqlnμ = reduce(vcat, μqlnμ) 
+    gipr = reduce(vcat, gipr) 
+    μqlnμ = reduce(vcat, μqlnμ) 
 
-    τ = reduce(vcat, τ) 
-    τ = reduce(vcat, τ) 
-    α = reduce(vcat, α) 
-    α = reduce(vcat, α) 
-    f_α = reduce(vcat, f_α) 
-    f_α = reduce(vcat, f_α) 
+    gipr_mean = dropmean(gipr, dims = 1)
 
-    return E_mean, dropmean(τ, dims = 1), dropmean(α, dims = 1), dropmean(f_α, dims = 1)
+    τ, α, f_α = compute_ταf(p_MFA, gipr, μqlnμ)
+
+    return E_mean, τ, α, f_α 
 end
 
-# end # module
+end # module

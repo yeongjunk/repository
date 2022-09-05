@@ -1,4 +1,4 @@
-module MFAScan 
+module EnsembleTest
 
 export shift_invert_linear_map, scan_ταf
 import Statistics: mean, std
@@ -32,7 +32,8 @@ From this, tau is computed
 Optionally the parameter c is specified if an error occurs
 """
 
-function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice, L::Int; c=1., seed::Int = 1234, isherm::Bool = true, l::Vector{Int} = [1],  q::Vector{Float64} = [2.], R::Int = 10, nev::Int= 10)
+function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice; c=1., seed::Int = 1234, isherm::Bool = true, l::Vector{Int} = [1],  q::Vector{Float64} = [2.], R::Int = 10, nev::Int= 10)
+    L = ltc.N
     nt = Threads.nthreads()
     rng = [MersenneTwister(seed) for i in 1:nt]
 
@@ -93,10 +94,11 @@ function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice, L::Int; c=1.,
     μqlnμ = reduce(vcat, μqlnμ) 
 
     gipr_mean = dropmean(gipr, dims = 1)
+    μqlnμ_mean = dropmean(μqlnμ, dims = 1)
 
     τ, α, f_α = compute_ταf(p_MFA, gipr, μqlnμ)
 
-    return E_mean, gipr_mean, μqlnμ, τ, α, f_α 
+    return E_mean, gipr_mean, μqlnμ_mean, τ, α, f_α 
 end
 
 end # module
