@@ -55,7 +55,7 @@ function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice; c=1., seed::I
                 n = size(H, 1)
 
                 #---- Lanczos method with shift-and-invert method ----#
-                lmap = shift_invert_linear_map(H, E_c, c = c) 
+                lmap = shift_invert_linear_map(H, E_c, c = c, isherm=isherm) 
 
                 E_inv, psi, _ = eigsolve(lmap, n, nev, :LM, ishermitian=isherm, krylovdim = max(30, 2nev + 1));
                 E = 1 ./ (c*real.(E_inv)) .+ E_c
