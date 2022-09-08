@@ -73,9 +73,9 @@ Transform the density vector(or columns vectors) p into coarsed p with box indic
 """
 function box_coarse(p, box_inds)
     @assert size(p, 1) == length(box_inds) 
-    p_coarse  = Array{eltype(p)}(undef, size(box_inds, 2), size(p, 2)) 
-    for j in 1:size(p, 2), i in 1:size(box_inds, 2)
-        p_coarse[i, j] = sum(p[box_inds[:, i], j])
+    p_coarse  = zeros(eltype(p), size(box_inds, 2), size(p, 2)) 
+    for j in 1:size(p, 2), i in 1:size(box_inds, 2), k in 1:size(box_inds, 1)
+         @inbounds p_coarse[i, j] += p[box_inds[k, i], j]
     end
     
     if typeof(p) <: Vector

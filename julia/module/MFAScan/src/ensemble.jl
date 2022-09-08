@@ -72,7 +72,7 @@ function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice; c=1., seed::I
                 μqlnμ_temp = similar(gipr_temp) 
 
                 for i in 1:size(psi, 2)
-                    gipr_temp[i, :, :], μqlnμ_temp[i, :, :] = compute_gipr_2(p_MFA, psi[:, i])
+                    gipr_temp[i, :, :], μqlnμ_temp[i, :, :] .= compute_gipr_2(p_MFA, psi[:, i])
                 end
 
                 # Push GIPR 
@@ -94,6 +94,7 @@ function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice; c=1., seed::I
     μqlnμ = reduce(vcat, μqlnμ) 
 
     gipr_mean = dropmean(gipr, dims = 1)
+    μqlnμ_mean = dropmean(μqlnμ, dims = 1)
 
     τ, α, f_α = compute_ταf(p_MFA, gipr, μqlnμ)
 

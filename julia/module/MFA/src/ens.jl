@@ -26,7 +26,7 @@ function prepare_MFA!(params::MFAParameters)
     end
 end
 
-function compute_gipr(params::MFAParameters, eigvect::Array{F, 1}) where F
+function compute_gipr(params::MFAParameters, eigvect::AbstractArray{F, 1}) where F
     p = abs2.(eigvect)
     p_coarse = [box_coarse(p, params.box_indices[i]) for i in 1:length(params.l)]
     gipr = Array{Float64}(undef,  length(params.q), length(params.l))
@@ -36,15 +36,22 @@ function compute_gipr(params::MFAParameters, eigvect::Array{F, 1}) where F
     return gipr
 end
 
-function compute_gipr_2(params::MFAParameters, eigvect::Array{F, 1}) where F
+function compute_gipr_2(params::MFAParameters, eigvect::AbstractArray{F, 1}) where F
     p = abs2.(eigvect)
-    p_coarse = [box_coarse(p, params.box_indices[i]) for i in 1:length(params.l)]
-    gipr = Array{Float64}(undef,  length(params.q), length(params.l))
-    μqlnμ = Array{Float64}(undef,  length(params.q), length(params.l))
+    @views p_coarse = [box_coarse(p, params.box_indices[i]) for i in 1:length(params.l)]
+    # gipr = Array{Float64}(undef,  length(params.q), length(params.l))
+    # μqlnμ = Array{Float64}(undef,  length(params.q), length(params.l))
 
+    gipr = zeros(Float64, length(params.q), length(params.l))
+    μqlnμ= zeros(Float64, length(params.q), length(params.l))
     for i in 1:length(params.q), j in 1:length(params.l)
-        gipr[i, j] = sum(x -> x^params.q[i], p_coarse[j])
-        μqlnμ[i, j] = sum(x -> xlogy(x^params.q[i], x), p_coarse[j])
+        for k in 1:length(p_coarse[j])
+            p_q = p_coarse[j][k]^params.q[i] 
+            gipr[i, j]  += p_q 
+            μqlnμ[i, j] += xlogy(p_q, p_coarse[j][k])
+        end
+        # @views gipr[i, j] = sum(x -> x^params.q[i], p_coarse[j])
+        # @views μqlnμ[i, j] = sum(x -> xlogy(x^params.q[i], x), p_coarse[j])
     end
     return gipr, μqlnμ
 end
@@ -53,12 +60,12 @@ function compute_τ(params::MFAParameters, gipr::Array{F, 3}) where F
     gipr_mean = dropmean(gipr, dims=1)
     τ = similar(gipr_mean)
     for i in 1:size(τ, 2)
-        τ[:, i] = log.(gipr_mean[:, i]) ./ log.(params.l[i]/params.ltc.N)
+        τ[:, i] = log.(@view gipr_mean[:, i]) ./ log.(params.l[i]/params.ltc.N)
     end
     return τ
 end
 
-function compute_τ(params::MFAParameters, eigvects::Array{F, 2}) where F
+function compute_τ(params::MFAParameters, eigvects::AbstractArray{F, 2}) where F
     gipr = Array{Float64}(undef, size(eigvects, 2), length(params.q), length(params.l))
     for i in 1:size(eigvects, 2)
         gipr[i, :, :] = compute_gipr(params, eigvects[:, i])
@@ -67,7 +74,7 @@ function compute_τ(params::MFAParameters, eigvects::Array{F, 2}) where F
     return compute_τ(params::MFAParameters, gipr::Array{F, 3})
 end
 
-function compute_ταf(params::MFAParameters, gipr::Array{F, 3}, μqlnμ::Array{F, 3}) where F
+function compute_ταf(params::MFAParameters, gipr::AbstractArray{F, 3}, μqlnμ::AbstractArray{F, 3}) where F
     gipr_mean = dropmean(gipr, dims=1)
     μqlnμ_mean = dropmean(μqlnμ, dims=1)
     τ = similar(gipr_mean)
@@ -89,7 +96,7 @@ function compute_ταf(params::MFAParameters, eigvects::Array{F, 2}) where F
     μqlnμ = similar(giprs)
     
     for i in 1:size(eigvects, 2)
-        gipr[i, :, :], μqlnμ[i, :, :] = compute_gipr_2(params, eigvects[:, i])
+        gipr[i, :, :], μqlnμ[i, :, :] = compute_gipr_2(params, @view eigvects[:, i])
     end
     
     return compute_ταf(params, gipr, μqlnμ)
