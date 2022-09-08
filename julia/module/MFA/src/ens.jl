@@ -37,21 +37,16 @@ function compute_gipr(params::MFAParameters, eigvect::AbstractArray{F, 1}) where
 end
 
 function compute_gipr_2(params::MFAParameters, eigvect::AbstractArray{F, 1}) where F
-    p = abs2.(eigvect)
-    @views p_coarse = [box_coarse(p, params.box_indices[i]) for i in 1:length(params.l)]
-    # gipr = Array{Float64}(undef,  length(params.q), length(params.l))
-    # μqlnμ = Array{Float64}(undef,  length(params.q), length(params.l))
+    @views p_coarse = [box_coarse(eigvect, params.box_indices[i], density = false) for i in 1:length(params.l)]
 
     gipr = zeros(Float64, length(params.q), length(params.l))
     μqlnμ= zeros(Float64, length(params.q), length(params.l))
-    for i in 1:length(params.q), j in 1:length(params.l)
+    for j in 1:length(params.l), i in 1:length(params.q)
         for k in 1:length(p_coarse[j])
             p_q = p_coarse[j][k]^params.q[i] 
             gipr[i, j]  += p_q 
             μqlnμ[i, j] += xlogy(p_q, p_coarse[j][k])
         end
-        # @views gipr[i, j] = sum(x -> x^params.q[i], p_coarse[j])
-        # @views μqlnμ[i, j] = sum(x -> xlogy(x^params.q[i], x), p_coarse[j])
     end
     return gipr, μqlnμ
 end

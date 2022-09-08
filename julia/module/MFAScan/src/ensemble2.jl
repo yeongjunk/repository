@@ -35,7 +35,7 @@ Optionally the parameter c is specified if an error occurs
 function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice; c=1., seed::Int = 1234, isherm::Bool = true, l::Vector{Int} = [1],  q::Vector{Float64} = [2.], R::Int = 10, nev::Int= 10)
     L = ltc.N
     nt = Threads.nthreads()
-    rng = [MersenneTwister(seed) for i in 1:nt]
+    rng = [MersenneTwister(seed+i) for i in 1:nt]
 
     p_MFA = MFAParameters(ltc, l, q)
     prepare_MFA!(p_MFA)
