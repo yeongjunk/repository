@@ -81,7 +81,7 @@ function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice; c=1., seed::I
                 er = false
             catch e
                 println("There was an error: ")
-                rethrow(e)
+                @error "ERROR: " exception=(e, catch_backtrace())
                 num_try += 1
                 continue
             end # try
