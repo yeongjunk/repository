@@ -80,7 +80,8 @@ function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice; c=1., seed::I
                 push!(μqlnμ[x], μqlnμ_temp)
                 er = false
             catch e
-                println("There was an error: ", e.msg)
+                println("There was an error: ")
+                rethrow(e)
                 num_try += 1
                 continue
             end # try
