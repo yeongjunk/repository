@@ -20,7 +20,7 @@ Linear map for A-IE
 function shift_invert_linear_map(A, E; c = 1., isherm = true)
     N = size(A, 1)
     F = lu(c*(A - E*I(N)))
-    LinearMap{eltype(A)}((y, x) -> ldiv!(y, F, x), size(A, 1), ismutating = true, ishermitian = isherm)
+    LinearMap{eltype(A)}((y, x) -> ldiv!(y, F, x), N, ismutating = true, ishermitian = isherm)
 end
 
 """
@@ -87,12 +87,12 @@ function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice; c=1., seed::I
             end # try
         end # while
     end # for loop over Realization
-    E_full = reduce(vcat, E_full)
+    E_full = vcat(E_full...)
     E_mean = mean(E_full)
-    gipr = reduce(vcat, gipr) 
-    μqlnμ = reduce(vcat, μqlnμ) 
-    gipr = reduce(vcat, gipr) 
-    μqlnμ = reduce(vcat, μqlnμ) 
+    gipr   = vcat(gipr...) 
+    μqlnμ  = vcat(μqlnμ...) 
+    gipr   = vcat(gipr...) 
+    μqlnμ  = vcat(μqlnμ...) 
 
     gipr_mean = dropmean(gipr, dims = 1)
     μqlnμ_mean = dropmean(μqlnμ, dims = 1)

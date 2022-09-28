@@ -37,19 +37,38 @@ function compute_gipr(params::MFAParameters, eigvect::AbstractArray{F, 1}) where
 end
 
 function compute_gipr_2(params::MFAParameters, eigvect::AbstractArray{F, 1}) where F
-    @views p_coarse = [box_coarse(eigvect, params.box_indices[i], density = false) for i in 1:length(params.l)]
-
     gipr = zeros(Float64, length(params.q), length(params.l))
     μqlnμ= zeros(Float64, length(params.q), length(params.l))
-    for j in 1:length(params.l), i in 1:length(params.q)
-        for k in 1:length(p_coarse[j])
-            p_q = p_coarse[j][k]^params.q[i] 
-            gipr[i, j]  += p_q 
-            μqlnμ[i, j] += xlogy(p_q, p_coarse[j][k])
+
+    for ω in 1:length(params.l), β in 1:size(params.box_indices[ω], 2)
+        p = 0. 
+        for α in 1:size(params.box_indices[ω], 1)
+            p += abs2(eigvect[params.box_indices[ω][α, β]]) 
+        end
+
+        for γ in 1:length(params.q)
+            gipr[γ, ω]  += p^params.q[γ]
+            μqlnμ[γ, ω] += xlogy(p^params.q[γ], p)
         end
     end
     return gipr, μqlnμ
 end
+
+# function compute_gipr_2(params::MFAParameters, eigvect::AbstractArray{F, 1}) where F
+#     @views p_coarse = [box_coarse(eigvect, params.box_indices[i], density = false) for i in 1:length(params.l)]
+#     
+#     gipr = zeros(Float64, length(params.q), length(params.l))
+#     μqlnμ= zeros(Float64, length(params.q), length(params.l))
+# 
+#     for j in 1:length(params.l), i in 1:length(params.q)
+#         for k in 1:length(p_coarse[j])
+#             p_q = p_coarse[j][k]^params.q[i] 
+#             gipr[i, j]  += p_q 
+#             μqlnμ[i, j] += xlogy(p_q, p_coarse[j][k])
+#         end
+#     end
+#     return gipr, μqlnμ
+# end
 
 function compute_τ(params::MFAParameters, gipr::Array{F, 3}) where F
     gipr_mean = dropmean(gipr, dims=1)
