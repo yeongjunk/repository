@@ -15,33 +15,51 @@ using MFA.Ensemble
 dropmean(A; dims=:) = dropdims(mean(A; dims=dims); dims=dims)
 
 """
+    generateParallelRngs(rng::AbstractRNG, n::Integer;reSeed=false)
+For multi-threaded models, return n independent random number generators (one per thread) to be used in threaded computations.
+Note that each ring is a _copy_ of the original random ring. This means that code that _use_ these RNGs will not change the original RNG state.
+Use it with `rngs = generateParallelRngs(rng,Threads.nthreads())` to have a separate rng per thread.
+By default the function doesn't re-seed the RNG, as you may want to have a loop index based re-seeding strategy rather than a threadid-based one (to guarantee the same result independently of the number of threads).
+If you prefer, you can instead re-seed the RNG here (using the parameter `reSeed=true`), such that each thread has a different seed. Be aware however that the stream  of number generated will depend from the number of threads at run time.
+"""
+function generateParallelRngs(rng::AbstractRNG, n::Integer;reSeed=false)
+    if reSeed
+        seeds = [rand(rng,100:18446744073709551615) for i in 1:n] # some RNGs have issues with too small seed
+        rngs  = [deepcopy(rng) for i in 1:n]
+        return Random.seed!.(rngs,seeds)
+    else
+        return [deepcopy(rng) for i in 1:n]
+    end
+end
+
+function ldiv2!(y, F, x)
+    y .= F\x
+end
+
+"""
 Linear map for A-IE
 """
 function shift_invert_linear_map(A, E; c = 1., isherm = true)
     N = size(A, 1)
-    F = lu(c*(A - E*I(N)))
-    LinearMap{eltype(A)}((y, x) -> ldiv!(y, F, x), N, ismutating = true, ishermitian = isherm)
+    F = factorize(c*(A - E*I(N)))
+    LinearMap{eltype(A)}((y, x) -> ldiv2!(y, F, x), N, ismutating = true, ishermitian = isherm)
 end
 
 """
-compute_tau(f, p, E_c, E_del, R, nev, L, l; c = 1., seed = 1234) 
 Create Hamiltonian H = f(p; rng=GLOBAL_RNG) and compute nev number of eigenstates at the target energy E_c over the energy window E_del. 
 R is number of realizations.
 The box-counted PN is computed and averaged over realizations and the given energy window. 
 From this, tau is computed
 Optionally the parameter c is specified if an error occurs
 """
+function scan_ταf(f::Function, params, E_c::Float64, E_del::Float64, p_MFA::MFAParameters; c::Float64=1., nev = 10, rng = Random.GLOBAL_RNG, isherm::Bool = true, R::Int = 10, kwargs_eig...)
+    nt = Threads.nthreads() 
+    masterseed = rand(rng, 100:99999999999)
+    rngs       = generateParallelRngs(rng, nt)
 
-function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice; c=1., seed::Int = 1234, isherm::Bool = true, l::Vector{Int} = [1],  q::Vector{Float64} = [2.], R::Int = 10, nev::Int= 10)
-    L = ltc.N
-    nt = Threads.nthreads()
-    rng = [MersenneTwister(seed+i) for i in 1:nt]
-
-    p_MFA = MFAParameters(ltc, l, q)
-    prepare_MFA!(p_MFA)
-    gipr = [Array{Float64}[] for i in 1:nt]
+    gipr  = [Array{Float64}[] for i in 1:nt]
     μqlnμ = [Array{Float64}[] for i in 1:nt]
-    E_full = [Float64[] for i in 1:nt]
+    E     = [Float64[] for i in 1:nt]
     #----------------------------- DIAGONALIZATION -----------------------------#
     @Threads.threads for r in 1:R # Realizations
         er = true
@@ -50,34 +68,28 @@ function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice; c=1., seed::I
             num_try == 5 && error("5 attempts faild.")
             try
                 x = Threads.threadid()
+                tsrng = rngs[x]
+                Random.seed!(tsrng,masterseed+r*40)
                 #---- Create the model ----#
-                H = f(params, rng = rng[x])
+                H = f(params, rng = tsrng)
                 n = size(H, 1)
 
                 #---- Lanczos method with shift-and-invert method ----#
-                lmap = shift_invert_linear_map(H, E_c, c = c, isherm=isherm) 
-
-                E_inv, psi, _ = eigsolve(lmap, n, nev, :LM, ishermitian=isherm, krylovdim = max(30, 2nev + 1));
-                E = 1 ./ (c*real.(E_inv)) .+ E_c
+                lmap = shift_invert_linear_map(H, E_c, c=c, isherm=isherm) 
+                E_inv, psi, _ = eigsolve(lmap, n, nev, :LM; kwargs_eig...) 
+                E_temp = 1 ./ (c*real.(E_inv)) .+ E_c
              
                 #---- Crop energies outside the energy bins ----#
-                idx = findall(x -> (E_c-E_del) <= x <= (E_c+E_del), E)
-                for i in 1:length(idx)
-                    push!(E_full[x], E[idx[i]])
-                end
-                psi = reduce(hcat, psi[idx])
+                idx = findall(x -> (E_c-E_del) <= x <= (E_c+E_del), E_temp)
 
                 #---- Compute GIPR ---#
-                gipr_temp = Array{Float64}(undef, size(psi, 2), length(p_MFA.q), length(p_MFA.l))  
-                μqlnμ_temp = similar(gipr_temp) 
-
-                for i in 1:size(psi, 2)
-                    gipr_temp[i, :, :], μqlnμ_temp[i, :, :] = compute_gipr_2(p_MFA, @view psi[:, i])
+                for i in 1:length(idx)
+                    gipr_temp, μqlnμ_temp = compute_gipr_2(p_MFA, psi[idx[i]])
+                    push!(E[x], E_temp[idx[i]])
+                    push!(gipr[x], gipr_temp)
+                    push!(μqlnμ[x], μqlnμ_temp)
                 end
 
-                # Push GIPR 
-                push!(gipr[x], gipr_temp)
-                push!(μqlnμ[x], μqlnμ_temp)
                 er = false
             catch e
                 println("There was an error: ")
@@ -87,18 +99,20 @@ function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice; c=1., seed::I
             end # try
         end # while
     end # for loop over Realization
-    E_full = vcat(E_full...)
-    E_mean = mean(E_full)
+    E = vcat(E...)
     gipr   = vcat(gipr...) 
+    gipr   = reshape.(gipr, 1, size(gipr[1])...)
+    gipr   = vcat(gipr...) 
+
     μqlnμ  = vcat(μqlnμ...) 
-    gipr   = vcat(gipr...) 
+    μqlnμ  = reshape.(μqlnμ, 1, size(μqlnμ[1])...)
     μqlnμ  = vcat(μqlnμ...) 
 
+    E_mean = mean(E)
     gipr_mean = dropmean(gipr, dims = 1)
     μqlnμ_mean = dropmean(μqlnμ, dims = 1)
-
+    
     τ, α, f_α = compute_ταf(p_MFA, gipr, μqlnμ)
-
     return E_mean, gipr_mean, μqlnμ_mean, τ, α, f_α 
 end
 

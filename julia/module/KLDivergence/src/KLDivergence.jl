@@ -6,7 +6,7 @@ function KL1(ψ_1::AbstractVector{F}, ψ_2::AbstractVector{F}) where F
     @assert length(ψ_1) == length(ψ_2)
     kl = 0.0
     for i in 1:length(ψ_1)
-        kl += abs2(ψ_1[i]) * log(abs(ψ_1[i]/ψ_2[i]))
+        kl += abs2(ψ_1[i]) * log(abs2(ψ_1[i]/ψ_2[i]))
     end
     return kl
 end
