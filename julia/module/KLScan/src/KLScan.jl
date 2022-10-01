@@ -9,31 +9,35 @@ using Random
 using Lattices
 using KLDivergence
 
-
-"""
-Linear map for A-IE
-"""
-function shift_invert_linear_map(A, E; c = 1., isherm = true)
-    N = size(A, 1)
-    F = lu(c*(A - E*I(N)))
-    LinearMap{eltype(A)}((y, x) -> ldiv!(y, F, x), N, ismutating = true, ishermitian = isherm)
+function generateParallelRngs(rng::AbstractRNG, n::Integer;reSeed=false)
+    if reSeed
+        seeds = [rand(rng,100:18446744073709551615) for i in 1:n] # some RNGs have issues with too small seed
+        rngs  = [deepcopy(rng) for i in 1:n]
+        return Random.seed!.(rngs,seeds)
+    else
+        return [deepcopy(rng) for i in 1:n]
+    end 
 end
 
-"""
-Create Hamiltonian H = f(p; rng=GLOBAL_RNG) and compute nev number of eigenstates at the target energy E_c over the energy window E_del. 
-R is number of realizations.
-The box-counted PN is computed and averaged over realizations and the given energy window. 
-From this, tau is computed
-Optionally the parameter c is specified if an error occurs
-"""
+function ldiv2!(y, F, x)
+    y .= F\x 
+end
 
-function scan_kl(f::Function, params, E_c, E_del; c=1., seed::Int = 1234, isherm::Bool = true, R::Int = 10, nev::Int= 10)
-    L = params.L
-    nt = Threads.nthreads()
-    rng = [MersenneTwister(seed+i) for i in 1:nt]
+function shift_invert_linear_map(A, E; c = 1.0, isherm = true)
+    N = size(A, 1)
+    F = factorize(c*(A - E*I(N)))
+    LinearMap{eltype(A)}((y, x) -> ldiv2!(y, F, x), N, ismutating = true, ishermitian = isherm)
+end
 
-    kls = [Float64[] for i in 1:nt]
-    E_full = [Float64[] for i in 1:nt]
+function scan_kl(f::Function, params, E_c, E_del; c = 1.0, rng::AbstractRNG = Random.GLOBAL_RNG, isherm::Bool = true, R::Int = 10, nev::Int= 10, kwarg_eig...)
+    # Initalize thread safe rngs
+    nt         = Threads.nthreads()
+    masterseed = rand(rng, 100:99999999999)
+    rngs       = generateParallelRngs(rng, nt)
+
+    # Initialize output array
+    kls        = [Float64[] for i in 1:nt]
+    Es         = [Float64[] for i in 1:nt]
     #----------------------------- DIAGONALIZATION -----------------------------#
     @Threads.threads for r in 1:R # Realizations
         er = true
@@ -42,32 +46,30 @@ function scan_kl(f::Function, params, E_c, E_del; c=1., seed::Int = 1234, isherm
             num_try == 5 && error("5 attempts faild.")
             try
                 x = Threads.threadid()
+                tsrng = rngs[x]
+                Random.seed!(tsrng,masterseed+r*40)
+
                 #---- Create the model ----#
-                H = f(params, rng = rng[x])
+                H = f(params, rng = tsrng)
                 n = size(H, 1)
 
                 #---- Lanczos method with shift-and-invert method ----#
-                lmap = shift_invert_linear_map(H, E_c, c = c, isherm=isherm) 
+                lmap          = shift_invert_linear_map(H, E_c, c = c, isherm=isherm) 
+                E_inv, psi, _ = eigsolve(lmap, n, nev, :LM; kwarg_eig...)
+                E_temp        = 1 ./ (c*real.(E_inv)) .+ E_c 
 
-                E_inv, psi, _ = eigsolve(lmap, n, nev, :LM, ishermitian=isherm, krylovdim = max(30, 2nev + 1));
-                E = 1 ./ (c*real.(E_inv)) .+ E_c
-             
                 #---- Crop energies outside the energy bins ----#
-                idx = findall(x -> (E_c-E_del) <= x <= (E_c+E_del), E)
-                for i in 1:length(idx)
-                    push!(E_full[x], E[idx[i]])
-                end
-                psi = reduce(hcat, psi[idx])
-                #---- Compute KL1 ---#
+                idx      = findall(x -> (E_c-E_del) <= x <= (E_c+E_del), E_temp)
+                psi      = reduce(hcat, psi[idx])
                 kls_temp = KL1(psi)
 
-                # Push KL1 
                 for i in 1:length(idx)
-                    push!(E_full[x], E[idx[i]])
+                    push!(Es[x], E_temp[idx[i]])
                     if i != length(idx) 
                         push!(kls[x], kls_temp[i])
                     end
                 end
+
                 er = false
             catch e
                 println("There was an error: ")
@@ -78,13 +80,11 @@ function scan_kl(f::Function, params, E_c, E_del; c=1., seed::Int = 1234, isherm
         end # while
     end # for loop over Realization
 
-    E_full = vcat(E_full...)
-    kls   = vcat(kls...) 
-
+    Es       = vcat(Es...)
+    Es_mean  = mean(Es)
+    kls      = vcat(kls...) 
     kls_mean = mean(kls)
-    E_mean = mean(E_full)
-
-    return E_mean, kls_mean
+    return Es_mean, kls_mean
 end
 
 end # module

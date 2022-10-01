@@ -16,8 +16,8 @@ function KL1(ψs::Matrix{F}) where F
     for i in 1:size(ψs, 2)-1
         @views kls[i] = KL1(ψs[:, i], ψs[:, i+1])
     end
-
     return kls
 end
+ 
 
 end # module
