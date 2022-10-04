@@ -31,18 +31,13 @@ function generateParallelRngs(rng::AbstractRNG, n::Integer;reSeed=false)
         return [deepcopy(rng) for i in 1:n]
     end
 end
-
-function ldiv2!(y, F, x)
-    y .= F\x
-end
-
 """
 Linear map for A-IE
 """
 function shift_invert_linear_map(A, E; c = 1., isherm = true)
     N = size(A, 1)
-    F = factorize(c*(A - E*I(N)))
-    LinearMap{eltype(A)}((y, x) -> ldiv2!(y, F, x), N, ismutating = true, ishermitian = isherm)
+    F = lu(c*(A - E*I(N)))
+    LinearMap{eltype(A)}((y, x) -> ldiv!(y, F, x), N, ismutating = true, ishermitian = isherm)
 end
 
 """
