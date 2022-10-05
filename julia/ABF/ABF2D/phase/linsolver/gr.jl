@@ -3,7 +3,7 @@ using BandedMatrices
 using LinearAlgebra, SparseArrays
 using Distributions
 using Parameters
-using Lattice
+using Lattices
 
 struct LatticeWave{F}
     lattice::Lattice2D

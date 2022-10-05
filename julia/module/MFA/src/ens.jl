@@ -54,22 +54,6 @@ function compute_gipr_2(params::MFAParameters, eigvect::AbstractArray{F, 1}) whe
     return gipr, μqlnμ
 end
 
-# function compute_gipr_2(params::MFAParameters, eigvect::AbstractArray{F, 1}) where F
-#     @views p_coarse = [box_coarse(eigvect, params.box_indices[i], density = false) for i in 1:length(params.l)]
-#     
-#     gipr = zeros(Float64, length(params.q), length(params.l))
-#     μqlnμ= zeros(Float64, length(params.q), length(params.l))
-# 
-#     for j in 1:length(params.l), i in 1:length(params.q)
-#         for k in 1:length(p_coarse[j])
-#             p_q = p_coarse[j][k]^params.q[i] 
-#             gipr[i, j]  += p_q 
-#             μqlnμ[i, j] += xlogy(p_q, p_coarse[j][k])
-#         end
-#     end
-#     return gipr, μqlnμ
-# end
-
 function compute_τ(params::MFAParameters, gipr::Array{F, 3}) where F
     gipr_mean = dropmean(gipr, dims=1)
     τ = similar(gipr_mean)

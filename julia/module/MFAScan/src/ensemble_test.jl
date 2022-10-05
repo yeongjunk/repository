@@ -52,7 +52,7 @@ The box-counted PN is computed and averaged over realizations and the given ener
 From this, tau is computed
 Optionally the parameter c is specified if an error occurs
 """
-function scan_ταf(f::Function, params, E_c::Float64, E_del::Float64, p_MFA::MFAParameters; c::Float64=1., nev = 10, rng = Random.GLOBAL_RNG, isherm::Bool = true, R::Int = 10, kwargs_eig...)
+function scan_ταf(f::Function, params, E_c::Float64, E_del::Float64, p_MFA::MFAParameters; c::Float64=1., nev = 10, rng = Random.GLOBAL_RNG, isherm::Bool = true, noaverage=false, R::Int = 10, kwargs_eig...)
     nt = Threads.nthreads() 
     masterseed = rand(rng, 100:99999999999)
     rngs       = generateParallelRngs(rng, nt)
@@ -78,7 +78,6 @@ function scan_ταf(f::Function, params, E_c::Float64, E_del::Float64, p_MFA::MF
                 lmap = shift_invert_linear_map(H, E_c, c=c, isherm=isherm) 
                 E_inv, psi, _ = eigsolve(lmap, n, nev, :LM; kwargs_eig...) 
                 E_temp = 1 ./ (c*real.(E_inv)) .+ E_c
-             
                 #---- Crop energies outside the energy bins ----#
                 idx = findall(x -> (E_c-E_del) <= x <= (E_c+E_del), E_temp)
 
@@ -111,9 +110,15 @@ function scan_ταf(f::Function, params, E_c::Float64, E_del::Float64, p_MFA::MF
     E_mean = mean(E)
     gipr_mean = dropmean(gipr, dims = 1)
     μqlnμ_mean = dropmean(μqlnμ, dims = 1)
-    
+      
     τ, α, f_α = compute_ταf(p_MFA, gipr, μqlnμ)
-    return E_mean, gipr_mean, μqlnμ_mean, τ, α, f_α 
+
+    if !noaverage
+        return E_mean, gipr_mean, μqlnμ_mean, τ, α, f_α 
+    else
+        return E, gipr, μqlnμ, τ, α, f_α
+    end
+    
 end
 
 end # module
