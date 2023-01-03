@@ -59,10 +59,15 @@ function LUT(N::Int64, θ::F; pirad::Bool=true) where F
 end
 
 
-function LUT(ltc::Lattice1D, θ::F, ϕ1::F, ϕ2::F) where F 
+function LUT(ltc::Lattice1D, θ::F, ϕ1::F, ϕ2::F; pirad::Bool = true) where F 
     num_sites = ltc.N*ltc.U
-    cos_θ = cospi(θ)
-    sin_θ = sinpi(θ)
+    if pirad
+        cos_θ = cospi(θ)
+        sin_θ = sinpi(θ)
+    else
+        cos_θ = cos(θ)
+        sin_θ = sin(θ)
+    end
     exp_phi1 = exp(im*ϕ1)
     exp_phi2 = exp(im*ϕ2)
     exp_phi1m = 1/exp_phi1
@@ -131,6 +136,23 @@ function U_fe(ltc::Lattice1D, θ::F; pirad=true) where F
     return U1*T1*U1
 end
 
+"""
+Construct Full unitary that constructs FE ABF
+"""
+function U_fe(ltc::Lattice1D, θ1::F, θ2::F; pirad=true) where F 
+    U1 = LUT(ltc, θ1, pirad=pirad)
+    U2 = LUT(ltc, θ2, pirad=pirad)
+    T1 = redef1(ltc, vartype = F)
+    return U2*T1*U1
+end
+"""
+Construct Full unitary that constructs FE ABF
+"""
+function U_fe(ltc::Lattice1D, θ::F, ϕ1::F, ϕ2::F; pirad=true) where F 
+    U1 = LUT(ltc, θ, ϕ1, ϕ2, pirad=pirad)
+    T1 = redef1(ltc, vartype = F)
+    return U1*T1*U1
+end
 
 """
 Construct Full unitary that constructs FE ABF
@@ -143,8 +165,28 @@ end
 """
 Real unitary parameters. This is the main FE construction
 """
+function ham_fe(ltc::Lattice1D, Ea::F, Eb::F, θ1::F, θ2::F; pirad=true) where F
+    U = U_fe(ltc, θ1, θ2, pirad=pirad)
+    H_fd = ham_fd(ltc, Ea, Eb)
+    H_fe = U*H_fd*U'
+    return H_fe, U
+end
+
+"""
+Real unitary parameters. This is the main FE construction
+"""
 function ham_fe(ltc::Lattice1D, Ea::F, Eb::F, θ::F; pirad=true) where F
     U = U_fe(ltc, θ, pirad=pirad)
+    H_fd = ham_fd(ltc, Ea, Eb)
+    H_fe = U*H_fd*U'
+    return H_fe, U
+end
+
+"""
+Real unitary parameters. This is the main FE construction
+"""
+function ham_fe(ltc::Lattice1D, Ea::F, Eb::F, θ::F, ϕ1::F, ϕ2::F; pirad=true) where F
+    U = U_fe(ltc, θ, ϕ1, ϕ2, pirad=pirad)
     H_fd = ham_fd(ltc, Ea, Eb)
     H_fe = U*H_fd*U'
     return H_fe, U
