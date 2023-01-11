@@ -1,6 +1,6 @@
 module EnsembleTest
 
-export shift_invert_linear_map, scan_ταf
+export shift_invert_linear_map, scan_ταf, mt_scan_ταf, MFAParameters
 import Statistics: mean, std
 
 using Statistics
@@ -53,6 +53,84 @@ From this, tau is computed
 Optionally the parameter c is specified if an error occurs
 """
 function scan_ταf(f::Function, params, E_c::Float64, E_del::Float64, p_MFA::MFAParameters; c::Float64=1., nev = 10, rng = Random.GLOBAL_RNG, isherm::Bool = true, noaverage=false, R::Int = 10, kwargs_eig...)
+    nt = Threads.nthreads() 
+    masterseed = rand(rng, 100:99999999999)
+    rngs       = generateParallelRngs(rng, nt)
+
+    gipr  = [Array{Float64}[] for i in 1:nt]
+    μqlnμ = [Array{Float64}[] for i in 1:nt]
+    E     = [Float64[] for i in 1:nt]
+    #----------------------------- DIAGONALIZATION -----------------------------#
+    for r in 1:R # Realizations
+        er = true
+        num_try = 0
+        while er
+            num_try == 5 && error("5 attempts faild.")
+            try
+                x = Threads.threadid()
+                tsrng = rngs[x]
+                Random.seed!(tsrng,masterseed+r*40)
+                #---- Create the model ----#
+                H = f(params, rng = tsrng)
+                n = size(H, 1)
+
+                #---- Lanczos method with shift-and-invert method ----#
+                lmap = shift_invert_linear_map(H, E_c, c=c, isherm=isherm) 
+                E_inv, psi, _ = eigsolve(lmap, n, nev, :LM; kwargs_eig...) 
+                E_temp = 1 ./ (c*real.(E_inv)) .+ E_c
+                #---- Crop energies outside the energy bins ----#
+                idx = findall(x -> (E_c-E_del) <= x <= (E_c+E_del), E_temp)
+
+                #---- Compute GIPR ---#
+                for i in 1:length(idx)
+                    gipr_temp, μqlnμ_temp = compute_gipr_2(p_MFA, psi[idx[i]])
+                    push!(E[x], E_temp[idx[i]])
+                    push!(gipr[x], gipr_temp)
+                    push!(μqlnμ[x], μqlnμ_temp)
+                end
+
+                er = false
+            catch e
+                println("There was an error: ")
+                @error "ERROR: " exception=(e, catch_backtrace())
+                num_try += 1
+                continue
+            end # try
+        end # while
+    end # for loop over Realization
+    E = vcat(E...)
+    gipr   = vcat(gipr...) 
+    gipr   = reshape.(gipr, 1, size(gipr[1])...)
+    gipr   = vcat(gipr...) 
+
+    μqlnμ  = vcat(μqlnμ...) 
+    μqlnμ  = reshape.(μqlnμ, 1, size(μqlnμ[1])...)
+    μqlnμ  = vcat(μqlnμ...) 
+
+    E_mean = mean(E)
+    gipr_mean = dropmean(gipr, dims = 1)
+    μqlnμ_mean = dropmean(μqlnμ, dims = 1)
+      
+    τ, α, f_α = compute_ταf(p_MFA, gipr, μqlnμ)
+
+    if !noaverage
+        return E_mean, gipr_mean, μqlnμ_mean, τ, α, f_α 
+    else
+        return E, gipr, μqlnμ, τ, α, f_α
+    end
+    
+end
+
+
+"""
+Multithreaded
+Create Hamiltonian H = f(p; rng=GLOBAL_RNG) and compute nev number of eigenstates at the target energy E_c over the energy window E_del. 
+R is number of realizations.
+The box-counted PN is computed and averaged over realizations and the given energy window. 
+From this, tau is computed
+Optionally the parameter c is specified if an error occurs
+"""
+function mt_scan_ταf(f::Function, params, E_c::Float64, E_del::Float64, p_MFA::MFAParameters; c::Float64=1., nev = 10, rng = Random.GLOBAL_RNG, isherm::Bool = true, noaverage=false, R::Int = 10, kwargs_eig...)
     nt = Threads.nthreads() 
     masterseed = rand(rng, 100:99999999999)
     rngs       = generateParallelRngs(rng, nt)
