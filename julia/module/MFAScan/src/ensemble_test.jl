@@ -52,7 +52,7 @@ The box-counted PN is computed and averaged over realizations and the given ener
 From this, tau is computed
 Optionally the parameter c is specified if an error occurs
 """
-function scan_ταf(f::Function, params, E_c::Float64, E_del::Float64, p_MFA::MFAParameters; c::Float64=1., nev = 10, rng = Random.GLOBAL_RNG, isherm::Bool = true, noaverage=false, R::Int = 10, kwargs_eig...)
+function scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::MFAParameters; nev = 10, rng = Random.GLOBAL_RNG, isherm::Bool = true, noaverage=false, R::Int = 10, kwargs_eig...)
     nt = Threads.nthreads() 
     masterseed = rand(rng, 100:99999999999)
     rngs       = generateParallelRngs(rng, nt)
@@ -75,11 +75,12 @@ function scan_ταf(f::Function, params, E_c::Float64, E_del::Float64, p_MFA::MF
                 n = size(H, 1)
 
                 #---- Lanczos method with shift-and-invert method ----#
-                lmap = shift_invert_linear_map(H, E_c, c=c, isherm=isherm) 
-                E_inv, psi, _ = eigsolve(lmap, n, nev, :LM; kwargs_eig...) 
-                E_temp = 1 ./ (c*real.(E_inv)) .+ E_c
+                lmap = shift_invert_linear_map(H, ε, isherm=isherm) 
+                E_temp, psi, _ = eigsolve(lmap, n, nev, :LM; kwargs_eig...) 
+                @. E_temp = 1 / real(E_temp) + ε 
+                E_temp = convert.(Float64, E_temp)
                 #---- Crop energies outside the energy bins ----#
-                idx = findall(x -> (E_c-E_del) <= x <= (E_c+E_del), E_temp)
+                idx = findall(x -> (ε - Δε) <= x <= (ε + Δε), E_temp)
 
                 #---- Compute GIPR ---#
                 for i in 1:length(idx)
@@ -122,15 +123,15 @@ function scan_ταf(f::Function, params, E_c::Float64, E_del::Float64, p_MFA::MF
 end
 
 
+
 """
-Multithreaded
 Create Hamiltonian H = f(p; rng=GLOBAL_RNG) and compute nev number of eigenstates at the target energy E_c over the energy window E_del. 
 R is number of realizations.
 The box-counted PN is computed and averaged over realizations and the given energy window. 
 From this, tau is computed
 Optionally the parameter c is specified if an error occurs
 """
-function mt_scan_ταf(f::Function, params, E_c::Float64, E_del::Float64, p_MFA::MFAParameters; c::Float64=1., nev = 10, rng = Random.GLOBAL_RNG, isherm::Bool = true, noaverage=false, R::Int = 10, kwargs_eig...)
+function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::MFAParameters; nev = 10, rng = Random.GLOBAL_RNG, isherm::Bool = true, noaverage=false, R::Int = 10, kwargs_eig...)
     nt = Threads.nthreads() 
     masterseed = rand(rng, 100:99999999999)
     rngs       = generateParallelRngs(rng, nt)
@@ -153,11 +154,12 @@ function mt_scan_ταf(f::Function, params, E_c::Float64, E_del::Float64, p_MFA:
                 n = size(H, 1)
 
                 #---- Lanczos method with shift-and-invert method ----#
-                lmap = shift_invert_linear_map(H, E_c, c=c, isherm=isherm) 
-                E_inv, psi, _ = eigsolve(lmap, n, nev, :LM; kwargs_eig...) 
-                E_temp = 1 ./ (c*real.(E_inv)) .+ E_c
+                lmap = shift_invert_linear_map(H, ε, isherm=isherm) 
+                E_temp, psi, _ = eigsolve(lmap, n, nev, :LM; kwargs_eig...) 
+                @. E_temp = 1 / real(E_temp) + ε 
+                E_temp = convert.(Float64, E_temp)
                 #---- Crop energies outside the energy bins ----#
-                idx = findall(x -> (E_c-E_del) <= x <= (E_c+E_del), E_temp)
+                idx = findall(x -> (ε - Δε) <= x <= (ε + Δε), E_temp)
 
                 #---- Compute GIPR ---#
                 for i in 1:length(idx)
@@ -198,5 +200,4 @@ function mt_scan_ταf(f::Function, params, E_c::Float64, E_del::Float64, p_MFA:
     end
     
 end
-
 end # module

@@ -3,7 +3,7 @@
 using LinearAlgebra
 using Lattices
 
-export box_indices, box_coarse
+export box_indices, box_coarse, Lattice1D, Lattice2D, Lattice3D
 """
 Return box indices with box size b. First dimension is the box indices, second dimension is different boxes
 """
