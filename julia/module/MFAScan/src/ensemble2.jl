@@ -13,6 +13,7 @@ using GIPR
 using MFA.Ensemble
 
 dropmean(A; dims=:) = dropdims(mean(A; dims=dims); dims=dims)
+dropstd(A; dims=:) = dropdims(std(A; dims=dims); dims=dims)
 
 """
 Linear map for A-IE
@@ -100,7 +101,7 @@ function scan_ταf(f::Function, params, E_c, E_del, ltc::Lattice; c=1., seed::I
 
     τ, α, f_α = compute_ταf(p_MFA, gipr, μqlnμ)
 
-    return E_mean, gipr_mean, μqlnμ_mean, τ, α, f_α 
+    return E_mean, gipr_mean, μqlnμ_mean, τ, α, f_α
 end
 
 end # module
