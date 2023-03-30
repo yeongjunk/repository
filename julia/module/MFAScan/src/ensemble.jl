@@ -52,13 +52,16 @@ The box-counted PN is computed and averaged over realizations and the given ener
 From this, tau is computed
 Optionally the parameter c is specified if an error occurs
 """
-function scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::MFAParameters; nev = 10, rng = Random.GLOBAL_RNG, isherm::Bool = true, noaverage=false, R::Int = 10, kwargs_eig...)
+function scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::MFAParameters; c = 1.0, nev = 10, rng = Random.GLOBAL_RNG, isherm::Bool = true, noaverage=false, R::Int = 10, kwargs_eig...)
     nt = Threads.nthreads() 
     masterseed = rand(rng, 100:99999999999)
     rngs       = generateParallelRngs(rng, nt)
 
     gipr  = [Array{Float64}[] for i in 1:nt]
     μqlnμ = [Array{Float64}[] for i in 1:nt]
+    tau  = [Array{Float64}[] for i in 1:nt]
+    f_alpha  = [Array{Float64}[] for i in 1:nt]
+    alpha = [Array{Float64}[] for i in 1:nt]
     E     = [Float64[] for i in 1:nt]
     #----------------------------- DIAGONALIZATION -----------------------------#
     for r in 1:R # Realizations
@@ -75,9 +78,9 @@ function scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::MFAP
                 n = size(H, 1)
 
                 #---- Lanczos method with shift-and-invert method ----#
-                lmap = shift_invert_linear_map(H, ε, isherm=isherm) 
+                lmap = shift_invert_linear_map(H, ε, isherm=isherm, c=c) 
                 E_temp, psi, _ = eigsolve(lmap, n, nev, :LM; kwargs_eig...) 
-                @. E_temp = 1 / real(E_temp) + ε 
+                @. E_temp = 1 / c*real(E_temp) + ε 
                 E_temp = convert.(Float64, E_temp)
                 #---- Crop energies outside the energy bins ----#
                 idx = findall(x -> (ε - Δε) <= x <= (ε + Δε), E_temp)
@@ -90,6 +93,10 @@ function scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::MFAP
                     push!(μqlnμ[x], μqlnμ_temp)
                 end
 
+                τ, α, f_α = compute_ταf(p_MFA, gipr_temp, μqlnμ_temp)
+                psuh!(tau, τ)
+                psuh!(alpha, α)
+                psuh!(f_alpha, f_α)
                 er = false
             catch e
                 println("There was an error: ")
@@ -136,8 +143,12 @@ function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::M
     masterseed = rand(rng, 100:99999999999)
     rngs       = generateParallelRngs(rng, nt)
 
-    gipr  = [Array{Float64}[] for i in 1:nt]
-    μqlnμ = [Array{Float64}[] for i in 1:nt]
+    tau  = [Array{Float64}[] for i in 1:nt]
+    f_alpha  = [Array{Float64}[] for i in 1:nt]
+    alpha = [Array{Float64}[] for i in 1:nt]
+    tau  = [Array{Float64}[] for i in 1:nt]
+    f_alpha  = [Array{Float64}[] for i in 1:nt]
+    alpha = [Array{Float64}[] for i in 1:nt]
     E     = [Float64[] for i in 1:nt]
     #----------------------------- DIAGONALIZATION -----------------------------#
     @Threads.threads for r in 1:R # Realizations
@@ -156,19 +167,24 @@ function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::M
                 #---- Lanczos method with shift-and-invert method ----#
                 lmap = shift_invert_linear_map(H, ε, isherm=isherm, c = c) 
                 E_temp, psi, _ = eigsolve(lmap, n, nev, :LM; kwargs_eig...) 
-                @. E_temp = 1 / c*real(E_temp) + ε 
+                @. E_temp = 1 / real(c*E_temp) + ε 
                 E_temp = convert.(Float64, E_temp)
                 #---- Crop energies outside the energy bins ----#
                 idx = findall(x -> (ε - Δε) <= x <= (ε + Δε), E_temp)
-
-                #---- Compute GIPR ---#
-                for i in 1:length(idx)
-                    gipr_temp, μqlnμ_temp = compute_gipr_2(p_MFA, psi[idx[i]])
-                    push!(E[x], E_temp[idx[i]])
-                    push!(gipr[x], gipr_temp)
-                    push!(μqlnμ[x], μqlnμ_temp)
+                if length(idx) == 0
+                     println("Warning: no ingenvalues")
                 end
-
+                #---- Compute GIPR ---#
+                gipr = Array{Float64}(undef, length(psi), length(p_MFA.q), length(p_MFA.l))  
+                μqlnμ = similar(gipr) 
+                for i in 1:length(idx)
+                    gipr[i,:,:], μqlnμ[i,:,:] = compute_gipr(p_MFA, psi[idx[i]])
+                    push!(E[x], E_temp[idx[i]])
+                end
+		τ, α, f_α = compute_ταf(p_MFA, gipr, μqlnμ)
+                push!(tau[x], τ) 
+                push!(alpha[x], α) 
+                push!(f_alpha[x], f_α) 
                 er = false
             catch e
                 println("There was an error: ")
@@ -178,44 +194,30 @@ function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::M
             end # try
         end # while
     end # for loop over Realization
-    E = vcat(E...)
-    gipr   = vcat(gipr...) 
-    gipr   = reshape.(gipr, 1, size(gipr[1])...)
-    gipr   = vcat(gipr...) 
-
-    μqlnμ  = vcat(μqlnμ...) 
-    μqlnμ  = reshape.(μqlnμ, 1, size(μqlnμ[1])...)
-    μqlnμ  = vcat(μqlnμ...) 
-
-    E_mean = mean(E)
-    gipr_mean = dropmean(gipr, dims = 1)
-    μqlnμ_mean = dropmean(μqlnμ, dims = 1)
-      
-    τ, α, f_α = compute_ταf(p_MFA, gipr, μqlnμ)
-
-    if !noaverage
-        return E_mean, gipr_mean, μqlnμ_mean, τ, α, f_α 
-    else
-        return E, gipr, μqlnμ, τ, α, f_α
+    E = reduce(vcat, E)
+    tau = hcat(tau...)
+    alpha = hcat(alpha...) 
+    f_alpha = hcat(f_alpha...)
+    tau_full = Array{Float64}(undef, length(tau), size(tau[1])...)  
+    alpha_full = similar(tau_full) 
+    f_alpha_full = similar(tau_full) 
+    for i in 1:length(tau)
+       tau_full[i, :, :] = tau[i]
+       alpha_full[i, :, :] = alpha[i]
+       f_alpha_full[i, :, :] = f_alpha[i]
     end
+    E_mean = mean(E)
+
+    tau_mean =     dropmean(tau_full, dims=1) 
+    alpha_mean =   dropmean(alpha_full, dims=1) 
+    f_alpha_mean = dropmean(f_alpha_full, dims=1) 
+    tau_ste=     dropdims(std(tau_full, dims=1), dims=1)
+    alpha_ste=   dropdims(std(alpha_full, dims=1), dims=1)
+    f_alpha_ste= dropdims(std(f_alpha_full, dims=1), dims=1)
+
+    return E_mean, tau_mean, tau_ste, alpha_mean, alpha_ste, f_alpha_mean, f_alpha_ste 
+    # return giprs, μqlnμs
     
 end
-function get_tau(;R = 10, q = 2, N = N, rng = Random.GLOBAL_RNG)
-    iprs = Float64[]
-    for r in 1:R
-        H = ham_nnn_obc(N=N, rng=rng)
-        vals, vecs = eigen!(Hermitian(Matrix(H)), N^3÷2+1:N^3÷2+1)
-        ipr = sum(x->abs2(x)^2, vecs)
-        push!(iprs, ipr)
-    end
-    n = R÷q
-    taus = Float64[]
-    for x in 1:n
-        ipr_part= iprs[(x-1)*q+1:x*q]
-        push!(taus, -log(mean(ipr_part))/log(N))
-    end
-    tau = mean(taus)
-    tau_err = std(taus)/sqrt(length(taus))
-    return tau, tau_err
-end
+
 end # module

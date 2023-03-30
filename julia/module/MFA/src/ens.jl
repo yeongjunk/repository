@@ -1,6 +1,6 @@
 module Ensemble
 
-export MFAParameters, prepare_MFA!, compute_gipr, compute_gipr_2, compute_τ, compute_ταf
+export MFAParameters, prepare_MFA!, compute_gipr, compute_τ, compute_ταf
 
 using Lattices
 using Statistics
@@ -27,16 +27,6 @@ function prepare_MFA!(params::MFAParameters)
 end
 
 function compute_gipr(params::MFAParameters, eigvect::AbstractArray{F, 1}) where F
-    p = abs2.(eigvect)
-    p_coarse = [box_coarse(p, params.box_indices[i]) for i in 1:length(params.l)]
-    gipr = Array{Float64}(undef,  length(params.q), length(params.l))
-    for i in 1:length(params.q), j in 1:length(params.l)
-        gipr[i, j] = sum(x -> x^params.q[i], p_coarse[j])
-    end
-    return gipr
-end
-
-function compute_gipr_2(params::MFAParameters, eigvect::AbstractArray{F, 1}) where F
     gipr = zeros(Float64, length(params.q), length(params.l))
     μqlnμ= zeros(Float64, length(params.q), length(params.l))
 
@@ -94,7 +84,7 @@ function compute_ταf(params::MFAParameters, eigvects::Array{F, 2}) where F
     μqlnμ = similar(giprs)
     
     for i in 1:size(eigvects, 2)
-        gipr[i, :, :], μqlnμ[i, :, :] = compute_gipr_2(params, @view eigvects[:, i])
+        gipr[i, :, :], μqlnμ[i, :, :] = compute_gipr(params, @view eigvects[:, i])
     end
     
     return compute_ταf(params, gipr, μqlnμ)
