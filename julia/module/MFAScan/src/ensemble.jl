@@ -172,7 +172,7 @@ function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::M
                 #---- Crop energies outside the energy bins ----#
                 idx = findall(x -> (ε - Δε) <= x <= (ε + Δε), E_temp)
                 if length(idx) == 0
-                     println("Warning: no ingenvalues")
+                     error("Warning: no ingenvalues, check whether the target energy is within the spectrum")
                 end
                 #---- Compute GIPR ---#
                 gipr = Array{Float64}(undef, length(psi), length(p_MFA.q), length(p_MFA.l))  
