@@ -195,9 +195,9 @@ function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::M
         end # while
     end # for loop over Realization
     E = reduce(vcat, E)
-    tau = hcat(tau...)
-    alpha = hcat(alpha...) 
-    f_alpha = hcat(f_alpha...)
+    tau = vcat(tau...)
+    alpha = vcat(alpha...) 
+    f_alpha = vcat(f_alpha...)
     tau_full = Array{Float64}(undef, length(tau), size(tau[1])...)  
     alpha_full = similar(tau_full) 
     f_alpha_full = similar(tau_full) 
