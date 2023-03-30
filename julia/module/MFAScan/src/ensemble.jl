@@ -141,14 +141,14 @@ function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::M
     E     = [Float64[] for i in 1:nt]
     #----------------------------- DIAGONALIZATION -----------------------------#
     @Threads.threads for r in 1:R # Realizations
+        x = Threads.threadid()
+        tsrng = rngs[x]
+        Random.seed!(tsrng,masterseed+r*40)
         er = true
         num_try = 0
         while er
             num_try == 5 && error("5 attempts faild.")
             try
-                x = Threads.threadid()
-                tsrng = rngs[x]
-                Random.seed!(tsrng,masterseed+r*40)
                 #---- Create the model ----#
                 H = f(params, rng = tsrng)
                 n = size(H, 1)
@@ -218,4 +218,4 @@ function get_tau(;R = 10, q = 2, N = N, rng = Random.GLOBAL_RNG)
     tau_err = std(taus)/sqrt(length(taus))
     return tau, tau_err
 end
-end # module
+yend # module
