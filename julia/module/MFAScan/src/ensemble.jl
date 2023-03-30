@@ -1,4 +1,4 @@
-module EnsembleTest
+module Ensemble
 
 export shift_invert_linear_map, scan_ταf, mt_scan_ταf, MFAParameters
 import Statistics: mean, std
@@ -199,5 +199,23 @@ function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::M
         return E, gipr, μqlnμ, τ, α, f_α
     end
     
+end
+function get_tau(;R = 10, q = 2, N = N, rng = Random.GLOBAL_RNG)
+    iprs = Float64[]
+    for r in 1:R
+        H = ham_nnn_obc(N=N, rng=rng)
+        vals, vecs = eigen!(Hermitian(Matrix(H)), N^3÷2+1:N^3÷2+1)
+        ipr = sum(x->abs2(x)^2, vecs)
+        push!(iprs, ipr)
+    end
+    n = R÷q
+    taus = Float64[]
+    for x in 1:n
+        ipr_part= iprs[(x-1)*q+1:x*q]
+        push!(taus, -log(mean(ipr_part))/log(N))
+    end
+    tau = mean(taus)
+    tau_err = std(taus)/sqrt(length(taus))
+    return tau, tau_err
 end
 end # module
