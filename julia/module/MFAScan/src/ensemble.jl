@@ -218,4 +218,4 @@ function get_tau(;R = 10, q = 2, N = N, rng = Random.GLOBAL_RNG)
     tau_err = std(taus)/sqrt(length(taus))
     return tau, tau_err
 end
-yend # module
+end # module
