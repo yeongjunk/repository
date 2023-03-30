@@ -131,7 +131,7 @@ The box-counted PN is computed and averaged over realizations and the given ener
 From this, tau is computed
 Optionally the parameter c is specified if an error occurs
 """
-function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::MFAParameters; nev = 10, rng = Random.GLOBAL_RNG, isherm::Bool = true, noaverage=false, R::Int = 10, kwargs_eig...)
+function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::MFAParameters; c = 1.0, nev = 10, rng = Random.GLOBAL_RNG, isherm::Bool = true, noaverage=false, R::Int = 10, kwargs_eig...)
     nt = Threads.nthreads() 
     masterseed = rand(rng, 100:99999999999)
     rngs       = generateParallelRngs(rng, nt)
@@ -154,9 +154,9 @@ function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::M
                 n = size(H, 1)
 
                 #---- Lanczos method with shift-and-invert method ----#
-                lmap = shift_invert_linear_map(H, ε, isherm=isherm) 
+                lmap = shift_invert_linear_map(H, ε, isherm=isherm, c = c) 
                 E_temp, psi, _ = eigsolve(lmap, n, nev, :LM; kwargs_eig...) 
-                @. E_temp = 1 / real(E_temp) + ε 
+                @. E_temp = 1 / c*real(E_temp) + ε 
                 E_temp = convert.(Float64, E_temp)
                 #---- Crop energies outside the energy bins ----#
                 idx = findall(x -> (ε - Δε) <= x <= (ε + Δε), E_temp)
