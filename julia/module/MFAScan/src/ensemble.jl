@@ -92,7 +92,7 @@ function scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::MFAP
                     push!(gipr[x], gipr_temp)
                     push!(μqlnμ[x], μqlnμ_temp)
                 end
-
+                display(gipr_temp)
                 τ, α, f_α = compute_ταf(p_MFA, gipr_temp, μqlnμ_temp)
                 psuh!(tau, τ)
                 psuh!(alpha, α)
@@ -173,7 +173,7 @@ function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::M
                      error("No eigennvalues, check whether the target energy is within the spectrum")
                 end
                 #---- Compute GIPR ---#
-                gipr = Array{Float64}(undef, length(psi), length(p_MFA.q), length(p_MFA.l))  
+                gipr = Array{Float64}(undef, length(idx), length(p_MFA.q), length(p_MFA.l))  
                 μqlnμ = similar(gipr) 
                 for i in 1:length(idx)
                     gipr[i,:,:], μqlnμ[i,:,:] = compute_gipr(p_MFA, psi[idx[i]])
@@ -184,6 +184,7 @@ function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::M
                 push!(alpha[x], α) 
                 push!(f_alpha[x], f_α) 
                 er = false
+               
             catch e
                 println("There was an error: ")
                 @error "ERROR: " exception=(e, catch_backtrace())
