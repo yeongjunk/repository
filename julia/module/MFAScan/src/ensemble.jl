@@ -209,9 +209,9 @@ function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::M
     tau_mean =     dropmean(tau_full, dims=1) 
     alpha_mean =   dropmean(alpha_full, dims=1) 
     f_alpha_mean = dropmean(f_alpha_full, dims=1) 
-    tau_ste=     dropdims(std(tau_full, dims=1), dims=1)
-    alpha_ste=   dropdims(std(alpha_full, dims=1), dims=1)
-    f_alpha_ste= dropdims(std(f_alpha_full, dims=1), dims=1)
+    tau_ste=     dropdims(std(tau_full, dims=1), dims=1)/sqrt(size(tau_full, 1))
+    alpha_ste=   dropdims(std(alpha_full, dims=1), dims=1)/sqrt(size(tau_full, 1))
+    f_alpha_ste= dropdims(std(f_alpha_full, dims=1), dims=1)/sqrt(size(tau_full, 1))
 
     return E_mean, tau_mean, tau_ste, alpha_mean, alpha_ste, f_alpha_mean, f_alpha_ste 
     # return giprs, μqlnμs
