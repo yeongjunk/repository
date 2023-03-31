@@ -146,9 +146,6 @@ function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::M
     tau  = [Array{Float64}[] for i in 1:nt]
     f_alpha  = [Array{Float64}[] for i in 1:nt]
     alpha = [Array{Float64}[] for i in 1:nt]
-    tau  = [Array{Float64}[] for i in 1:nt]
-    f_alpha  = [Array{Float64}[] for i in 1:nt]
-    alpha = [Array{Float64}[] for i in 1:nt]
     E     = [Float64[] for i in 1:nt]
     #----------------------------- DIAGONALIZATION -----------------------------#
     @Threads.threads for r in 1:R # Realizations
@@ -169,10 +166,11 @@ function mt_scan_ταf(f::Function, params, ε::Float64, Δε::Float64, p_MFA::M
                 E_temp, psi, _ = eigsolve(lmap, n, nev, :LM; kwargs_eig...) 
                 @. E_temp = 1 / real(c*E_temp) + ε 
                 E_temp = convert.(Float64, E_temp)
+
                 #---- Crop energies outside the energy bins ----#
                 idx = findall(x -> (ε - Δε) <= x <= (ε + Δε), E_temp)
                 if length(idx) == 0
-                     error("Warning: no ingenvalues, check whether the target energy is within the spectrum")
+                     error("No eigennvalues, check whether the target energy is within the spectrum")
                 end
                 #---- Compute GIPR ---#
                 gipr = Array{Float64}(undef, length(psi), length(p_MFA.q), length(p_MFA.l))  
