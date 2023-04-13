@@ -59,7 +59,7 @@ function prbm2(N::Integer, rng::AbstractRNG; dist::Distribution=Uniform(-0.5, 0.
            n+i > ltc.N && continue
            push!(I, index(ltc, (n, 1))) 
            push!(J, index(ltc, (n+i, 1))) 
-           push!(V, x^(exponent)/(1+(i)^(-2exponent))*rand(rng, dist))
+           push!(V, i^(exponent)/(1+(i)^(2exponent))*rand(rng, dist))
        end
     end
     H = sparse(I, J, V, ltc.N, ltc.N)
