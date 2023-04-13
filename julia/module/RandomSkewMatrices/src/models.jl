@@ -3,7 +3,7 @@ using SparseArrays
 using Distributions
 using Random
 
-export compact_chain, erbm, prbm, quasiperiodic_compact_chain
+export compact_chain, erbm, prbm, prbm2, quasiperiodic_compact_chain
 
 function compact_chain(N, rng;  dist::Distribution=Uniform(-0.5, 0.5), l=2, bc=:open)
     ltc = Lattice1D(N, 1)
