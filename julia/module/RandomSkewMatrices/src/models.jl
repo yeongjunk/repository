@@ -51,6 +51,21 @@ function prbm(N::Integer, rng::AbstractRNG; dist::Distribution=Uniform(-0.5, 0.5
     return H - H' 
 end
 
+function prbm2(N::Integer, rng::AbstractRNG; dist::Distribution=Uniform(-0.5, 0.5), exponent = 2.0) 
+    ltc = Lattice1D(N, 1)
+    I = Int64[]; J=Int64[]; V=Float64[]
+    for n in 1:ltc.N    
+       for i in 1:ltc.N 
+           n+i > ltc.N && continue
+           push!(I, index(ltc, (n, 1))) 
+           push!(J, index(ltc, (n+i, 1))) 
+           push!(V, x^(exponent)/(1+(i)^(-2exponent))*rand(rng, dist))
+       end
+    end
+    H = sparse(I, J, V, ltc.N, ltc.N)
+    return H - H' 
+end
+
 function quasiperiodic_compact_chain(N::Integer, rng::AbstractRNG; a = (sqrt(5) - 1)/2, phi = 0.0)
     ltc = Lattice1D(N, 1)
     I = Int64[]; J=Int64[]; V=Float64[]
