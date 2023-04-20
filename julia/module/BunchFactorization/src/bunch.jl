@@ -1,7 +1,6 @@
 # Bunch decompositions
 
 using  LinearAlgebra, SparseArrays
-using LoopVectorization
 export Bunch, bunch!, bunchrank2update!, bunch2!, skewger2!
 
 
