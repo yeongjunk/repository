@@ -7,10 +7,12 @@ BLAS.set_num_threads(1)
 println("________________________TEST________________________")
 println()
 rng = MersenneTwister()
-N = 3001
+N = 1001
 
 A = Matrix(compact_chain(N, rng))
 
+# A = rand(N, N) 
+# A = A - A' 
 B = A[1:end-1, 1:end-1]
 b = -A[1:end-1, end]
 A_copy = copy(B)
@@ -44,7 +46,7 @@ println("Linear solver accuracy(LU):    ", norm(A*x2)/norm(x2))
 println("Linear solver accuracy(BUNCH+ROOK):    ", norm(A*x3)/norm(x3))
 
 println("N = 3001")
-N = 1001
+N = 3001
 A = rand(rng, N, N)
 A = A-A'
 A_copy = copy(A)

@@ -12,20 +12,20 @@ BLAS.set_num_threads(1)
 println("________________________TEST________________________")
 println()
 rng = MersenneTwister()
-N = 35
-l = 4
+N = 15
+l = 2
 F = Float64x3
-A=F.(BandedMatrix(compact_chain(N, rng, l = l), (l+1, l+1)))
+A=F.(BandedMatrix(compact_chain(N, rng, l = l), (l^2, l^2)))
 B = A[1:end-1, 1:end-1]
 b = -A[1:end-1, end]
 B_copy = copy(B)
-F  = bunch!(copy(B),l, pivot = false)
+F  = bunch!(copy(B),l, pivot = true)
 display(F.L)
 
-x  = solve(F,l+1, b)
+x  = solve(F,l^2, b)
 
 @time F  = bunch!(B_copy, l, pivot = false)
-@time x = solve(F,l+1,b)
+@time x = solve(F,l^2,b)
 push!(x, 1)
 
 x = x/sqrt(sum(abs2, x))
