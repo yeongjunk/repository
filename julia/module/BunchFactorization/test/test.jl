@@ -13,10 +13,10 @@ A = A-A'
 A_copy = copy(A)
 A_copy2 = copy(A)
 
-F  = bunch!(copy(A), pivot = true)
+F  = bunch!(copy(A), pivot = :partial)
 F2 = lu(A)
 
-@time F  = bunch!(A_copy, pivot = true)
+@time F  = bunch!(A_copy, pivot = :partial)
 @time F2 = lu(A)
 resid = A[F.p,F.p] - F.L*F.D*F.L' 
 resid2 = F2.P*A - F2.L*F2.U

@@ -21,17 +21,14 @@ Bin x of given bin edge given by x_edges
 @inline function binning(x::T, x_edges::AbstractArray{T}) where T <: Number
     L = 1 #leftmost edge
     R = length(x_edges) #rightmost edge
-    #j = 1;
     if x_edges[1] <= x < x_edges[end]
         while L+1 < R
             m = (L+R)÷2
-            # println("$(j),$(L), $(m), $(R)")
             if x  >= x_edges[m]
                  L = m
             else
                 R = m
             end
-            #j += 1
        end
         return L
     else

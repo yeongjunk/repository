@@ -1,7 +1,7 @@
 # Bunch decompositions
 
 using  LinearAlgebra, SparseArrays
-export Bunch, bunch!, bunchrank2update!, bunch2!, skewger2!
+export Bunch, bunch!, bunchrank2update!, bunch2!, skewrank2update!, skewfindabsmax, skewrowcolperm
 
 
 struct Bunch{T, L<:UnitLowerTriangular{<:T}, D<:Tridiagonal{<:T}, P<:AbstractVector{<:Integer}}
@@ -13,13 +13,17 @@ struct Bunch{T, L<:UnitLowerTriangular{<:T}, D<:Tridiagonal{<:T}, P<:AbstractVec
     end
 end
 
+function Bunch(L::UnitLowerTriangular{<:T}, D::Tridiagonal{<:T}, p::AbstractVector{<:Integer}) where {T<:Real}
+    return Bunch{T, typeof(L), typeof(D), typeof(p)}(L, D, p)
+end
+
 """
-Finds the index of the absolute maximum of the lower triangular part
+Return (value, index) of the absolute maximum element with value at index(Tuple{Int, Int}) by only accessing lower triangular part of a skew symmetric matrix.
 """
-function lt_findabsmax(A::AbstractMatrix{T}) where {T <: Real}
+function skewfindabsmax(A)
     P = size(A, 1)
     Q = size(A, 2)
-    m = zero(T);
+    m = zero(eltype(A));
     ind = (0, 0)
     @inbounds for q in 1:Q, p in q+1:P
         x = abs(A[p,q])
@@ -31,184 +35,225 @@ function lt_findabsmax(A::AbstractMatrix{T}) where {T <: Real}
 end
 
 """
-Rank 2 update of the skew symmetric matrix A -> A + a*(x*y' - y*x')
+Return (value, index) of the maximum element with value at index(Tuple{Int, Int}), by only accessing lower triangular part of a skew symmetric matrix
 """
-@inline function skewger2!(A::AbstractMatrix, a::Real, x::AbstractVector, y::AbstractVector)
+function skewfindmax(A)
+    P = size(A, 1)
+    Q = size(A, 2)
+    m = zero(eltype(A));
+    ind = (0, 0)
+    @inbounds for q in 1:Q, p in q+1:P
+        z = A[p, q]
+        x = abs(z)
+        m >= x && continue
+        m = x
+        if z > 0
+            ind = (p, q)
+        else
+            ind = (q, p)
+        end
+    end 
+    return m, ind 
+end
+
+"""
+Returns (value, index) of the maximum element with value at index(Tuple{Int, Int}), by only accessing lower triangular part of a skew symmetric matrix
+"""
+function skewfindmin(A)
+    m, ind = skewfindmax(A)
+    return m, reverse(ind)
+end
+
+"""
+Update lower triangular part of a skew symmetric matrix A -> A + a*(x*y' - y*x').
+"""
+function skewrank2update!(A, a, x, y)
     n = size(A, 1)
-    @inbounds for j in 1:2:2*div(n, 2)
-        xj, yj   = x[j], y[j]
-        xj1, yj1 = x[j+1], y[j+1]
+    m = 2*div(n, 2)
+    @inbounds for j in 1:2:m
+        xj, xj1   = a*x[j], a*x[j+1]
+        yj, yj1   = a*y[j], a*y[j+1]
         @inbounds for k in j+1:n
             xk, yk    = x[k], y[k]
+            A[k, j]   += xk*yj-yk*xj
+            A[k, j+1] += xk*yj1-yk*xj1
+        end
+    end
+end
+
+"""
+Update lower triangular part of a skew symmetric matrix A -> A + a*(x*y' - y*x'), where x and y are nonzero up to l.
+"""
+function bandedskewrank2update!(A, l, a, x, y)
+    n = size(A, 1)
+    @inbounds for j in 1:min(n, l)
+        xj, yj   = x[j], y[j]
+        @inbounds for k in j+1:min(n, j+l)
+            xk, yk    = x[k], y[k]
             A[k, j]   += a*(xk*yj-yk*xj)
-            A[k, j+1] += a*(xk*yj1-yk*xj1)
+        end
+     end
+end
+
+"""
+Update lower triangular part of a skew symmetric matrix A -> A + a*(x*y' - y*x'). This is fast when x and y have many zeros, but slower if x and y are very dense.
+"""
+function skewrank2update2!(A, a, x, y)
+    n = size(A, 1)
+
+    x_inds = findall(!iszero, x)  
+    y_inds = findall(!iszero, y)  
+    j_inds = union(x_inds, y_inds) 
+    @inbounds for j in j_inds 
+        xj, yj   = a*x[j], a*y[j]
+        @inbounds for k in j_inds 
+            if k > j
+                xk, yk    = x[k], y[k]
+                A[k, j]   += xk*yj-yk*xj
+            end
         end
      end
 end
 
 
-function Bunch(L::UnitLowerTriangular{<:T}, D::Tridiagonal{<:T}, p::AbstractVector{<:Integer}) where {T<:Real}
-    return Bunch{T, typeof(L), typeof(D), typeof(p)}(L, D, p)
+
+
+"""
+Permute q-th and p-th rows and columns of a skew symmetric matrix A, accessing only the lower triangular part.
+"""
+function skewrowcolperm!(A, q, p)
+    if p == q
+        return nothing
+    end
+    p, q = minmax(p, q)
+    n = size(A, 1)
+    if q > size(A, 1) || p > size(A, 1)
+        error("p,q > size(A, 1)")
+    end
+
+    A[q, p] = -A[q, p]
+    @inbounds for t in 1:p-1
+        A[p, t], A[q, t] = A[q, t], A[p, t]
+    end
+    @inbounds for t in p+1:q-1
+        A[t, p], A[q, t] = -A[q, t], -A[t, p]
+    end
+    @inbounds for t in q+1:n
+        A[t, p], A[t, q] = A[t, q], A[t, p]
+    end
 end
 
-function bunch!(A::AbstractMatrix{<:Real}; pivot::Bool=true)
+"""
+pivot can be :partial, :partial2 (true), or anyhting else will be considered as no pivoting
+:partial: fast partial pivoting.
+:partial2: stronger pivoting, but permutes the indices strongly.
+"""
+function bunch!(A; pivot=:partial)
     n = size(A, 1)
     m = size(A, 1)÷2
-    rowperm = collect(1:n)
+    permidx = collect(1:n)
     
     @inbounds for i in 1:2:n-1
-        if pivot
+        if pivot == :partial || pivot == :partial2
+            if pivot == :partial
+                T = view(A, i:n, i:i+1)
+            elseif pivot == :partial2 || pivot == true
+                T = view(A, i:n, i:n)
+            end
+         
+            m, idx = skewfindmin(T)
+            if m != T[2, 1]
+                q = idx[1] + i-1
+                p = i
+                q1 = idx[2] != 1 ? idx[2] + i-1 : idx[1] + i-1 
+                p1 = i+1
+
+                skewrowcolperm!(A, q, p)
+                skewrowcolperm!(A, q1, p1)
+
+                permidx[p],  permidx[q]  = permidx[q],  permidx[p]
+                permidx[p1], permidx[q1] = permidx[q1], permidx[p1]
+            end
+        end
+
+        a = A[i+1, i]
+        x = view(A, i+2:n, i)
+        y = view(A, i+2:n, i+1)
+        B = view(A, i+2:n, i+2:n)
+
+        @inbounds for j in 1:n-i-1
+            xj, yj = x[j], y[j]
+            x[j], y[j] = -yj/a, xj/a
+        end
+        skewrank2update!(B, a, x, y) 
+    end
+
+    D = Tridiagonal(A)
+    D.dl[2:2:end] .= zero(eltype(D))
+    D.du .= -D.dl
+    D.d .= zero(eltype(D))
+    @views A[diagind(A, -1)][1:2:end] .= zero(eltype(D)) 
+    L = UnitLowerTriangular(A);
+
+    return Bunch(L, D, permidx)
+end
+
+
+"""
+Bunch decomposition accessing only lower l subdiagonal.
+If no pivot, resulting L has only upto l+1 subdiagonal. (Extremely efficient, but unstable.
+If pivoting is used, the band structure is destroyed.
+"""
+function bunch!(A, l; pivot=:partial)
+    n = size(A, 1)
+    m = size(A, 1)÷2
+    permidx = collect(1:n)
+
+    @inbounds for i in 1:2:n-1
+        if pivot == :partial || pivot ==:partial2
+            nzlen = n-i-1
+        else
+            nzlen = min(l+1, n-i-1) 
+        end
+
+        if pivot == :partial
             T = view(A, i:n, i:i+1)
-            maxval, idx = lt_findabsmax(T)
-            if !(maxval <= abs(T[2, 1]))
+            m, idx = skewfindabsmax(T)
+            if m != abs(T[2, 1])
                 q = idx[1] + i-1
                 p = (idx[2] == 2) ? i : i+1
-                A[q, p] = -A[q, p]
-                @inbounds for t in 1:p-1
-                    A[p, t], A[q, t] = A[q, t], A[p, t]
-                end
-                @inbounds for t in p+1:q-1
-                    A[t, p], A[q, t] = -A[q, t], -A[t, p]
-                end
-                @inbounds for t in q+1:n
-                    A[t, p], A[t, q] = A[t, q], A[t, p]
-                end
-                rowperm[p], rowperm[q] = rowperm[q], rowperm[p]
+                skewrowcolperm!(A, q, p)
+                permidx[p], permidx[q] = permidx[q], permidx[p]
             end
-        end
-        
-        a = A[i+1, i]
-        ASinv1 = view(A, i+2:n, i)
-        ASinv2 = view(A, i+2:n, i+1)
-        B = view(A, i+2:n, i+2:n)
 
-        @inbounds for j in 1:n-i-1
-            x, y = ASinv1[j], ASinv2[j]
-            ASinv1[j], ASinv2[j] = -y/a, x/a
-        end
-        # mul!(B, ASinv1, ASinv2', a, 1.0)
-        skewger2!(B, a, ASinv1, ASinv2) 
-    end
-    D = Tridiagonal(A)
-    D.dl[2:2:end] .= zero(eltype(D))
-    D.du .= -D.dl
-    D.d .= zero(eltype(D))
-
-    @views A[diagind(A, -1)][1:2:end] .= zero(eltype(D)) 
-    L = UnitLowerTriangular(A);
-
-    return Bunch(L, D, rowperm)
-end
-
-
-function bunch2!(A::AbstractMatrix{<:Real}; pivot=true)
-    n = size(A, 1)
-    m = size(A, 1)÷2
-    rowperm = collect(1:n)
-    
-    @inbounds for i in 1:2:n-1
-        if pivot
+        elseif pivot == :partial2 || pivot == true
             T = view(A, i:n, i:n)
-            m, idx = lt_findabsmax(T)
+            m, idx = skewfindabsmax(T)
 
-            q = idx[1] + i-1
-            p = i
-            q1 = idx[2] != 1 ? idx[2] + i-1 : idx[1] + i-1 
-            p1 = i+1 
-
-            A[q, p] = -A[q, p]
-            @inbounds for t in 1:p-1
-                A[p, t], A[q, t] = A[q, t], A[p, t]
+            if m != abs(T[2, 1])
+                q = idx[1] + i-1
+                p = i
+                q1 = idx[2] != 1 ? idx[2] + i-1 : idx[1] + i-1 
+                p1 = i+1 
+                skewrowcolperm!(A, q, p)
+                skewrowcolperm!(A, q1, p1)
+                permidx[p],  permidx[q]  = permidx[q],  permidx[p]
+                permidx[p1], permidx[q1] = permidx[q1], permidx[p1]
             end
-            @inbounds for t in q+1:n
-                A[t, p], A[t, q] = A[t, q], A[t, p]
-            end
-            @inbounds for t in p+1:q-1
-                A[t, p], A[q, t] = -A[q, t], -A[t, p]
-            end
-
-            A[q1, p1] = -A[q1, p1]
-            @inbounds for t in 1:p1-1
-                A[p1, t], A[q1, t] = A[q1, t], A[p1, t]
-            end
-            @inbounds for t in q1+1:n
-                A[t, p1], A[t, q1] = A[t, q1], A[t, p1]
-            end
-            @inbounds for t in p1+1:q1-1
-                A[t, p1], A[q1, t] = -A[q1, t], -A[t, p1]
-            end
-
-            rowperm[p],  rowperm[q]  = rowperm[q],  rowperm[p]
-            rowperm[p1], rowperm[q1] = rowperm[q1], rowperm[p1]
         end
-        
+
         a = A[i+1, i]
-        ASinv1 = view(A, i+2:n, i)
-        ASinv2 = view(A, i+2:n, i+1)
+        x = view(A, i+2:n, i)
+        y = view(A, i+2:n, i+1)
         B = view(A, i+2:n, i+2:n)
-
-        @inbounds for j in 1:n-i-1
-            x, y = ASinv1[j], ASinv2[j]
-            ASinv1[j], ASinv2[j] = -y/a, x/a
-        end
-        skewger2!(B, a, ASinv1, ASinv2) 
-
-    end
-    D = Tridiagonal(A)
-    D.dl[2:2:end] .= zero(eltype(D))
-    D.du .= -D.dl
-    D.d .= zero(eltype(D))
-
-    @views A[diagind(A, -1)][1:2:end] .= zero(eltype(D)) 
-    L = UnitLowerTriangular(A);
-    
-    return Bunch(L, D, rowperm)
-end
-
-function bunch!(A, l; pivot=true)
-    n = size(A, 1)
-    m = size(A, 1)÷2
-    rowperm = collect(1:n)
-    
-    @inbounds for i in 1:2:n-1
-        nzlen = min(l^2, n-i-1)
-        if pivot
-            T = view(A, i:i+nzlen, i:i+1)
-            _, idx = findmax(abs, T)
-
-            q = idx[1] + i-1
-            p = (idx[2] == 2) ? i : i+1
-
-            A[q, p] = -A[q, p]
-            @inbounds for t in 1:p-1
-                A[p, t], A[q, t] = A[q, t], A[p, t]
-            end
-            @inbounds for t in q+1:n
-                A[t, p], A[t, q] = A[t, q], A[t, p]
-            end
-            @inbounds for t in p+1:q-1
-                A[t, p], A[q, t] = -A[q, t], -A[t, p]
-            end
-            rowperm[p], rowperm[q] = rowperm[q], rowperm[p]
-        end
-        
-        a = A[i+1, i]
-        ASinv1 = view(A, i+2:n, i)
-        ASinv2 = view(A, i+2:n, i+1)
-        B = view(A, i+2:n, i+2:n)
-
-        @inbounds for j in 1:2:nzlen
-            x, y   = ASinv1[j],   ASinv2[j]
-            x1, y1 = ASinv1[j+1], ASinv2[j+1]
-            @inbounds for k in j+1:nzlen
-                z, w = ASinv1[k], ASinv2[k]
-                B[k, j]   -= (w*x - z*y)/a
-                B[k, j+1] -= (w*x1 - z*y1)/a
-            end
-        end
         @inbounds for j in 1:nzlen
-            x, y = ASinv1[j], ASinv2[j]
-            ASinv1[j], ASinv2[j] = -y/a, x/a
+            xj, yj = x[j], y[j]
+            x[j], y[j] = -yj/a, xj/a
+        end
+        if pivot == :partial || pivot == :partial2
+            skewrank2update2!(B, a, x, y) 
+        else
+            bandedskewrank2update!(B, nzlen, a, x, y) 
         end
     end
     D = Tridiagonal(A)
@@ -218,9 +263,12 @@ function bunch!(A, l; pivot=true)
 
     A[diagind(A, -1)] -= D.dl
     L = UnitLowerTriangular(A);
-    return Bunch(L, D, rowperm)
+    return Bunch(L, D, permidx)
 end
 
+"""
+Update the bunch decomposition of A -> A + a(w*v' - v*w'). If your bunch decomposition is pivoted, you have to permute the w and v somehow. 
+"""
 function bunchrank2update!(L, D, a, w, v)
     n = size(L, 1)
     n == 0 && return nothing
