@@ -41,5 +41,20 @@ push!(x, 1)
 x = x/sqrt(sum(abs2, x))
 resid2= A*x
 
+A=Matrix(compact_chain(N, rng, l = l))
+B = A[1:end-1, 1:end-1]
+display(typeof(B))
+b = -A[1:end-1, end]
+B_copy = copy(B)
+F  = bunch!(copy(B),l, pivot = :partial2)
+x  = solve(F, b)
+@time F  = bunch!(B_copy, l, pivot = :partial2)
+@time x = solve(F, b)
+push!(x, 1)
+x = x/sqrt(sum(abs2, x))
+resid3= A*x
+
+
 println("Linear solver accuracy(unpivoted): ", norm(resid1))
 println("Linear solver accuracy(partial)  : ", norm(resid2))
+println("Linear solver accuracy(partial2)  : ", norm(resid3))

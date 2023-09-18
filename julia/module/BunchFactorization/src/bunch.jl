@@ -87,10 +87,10 @@ Update lower triangular part of a skew symmetric matrix A -> A + a*(x*y' - y*x')
 function bandedskewrank2update!(A, l, a, x, y)
     n = size(A, 1)
     @inbounds for j in 1:min(n, l)
-        xj, yj   = x[j], y[j]
-        @inbounds for k in j+1:min(n, j+l)
+        xj, yj   = a*x[j], a*y[j]
+        @inbounds @simd for k in j+1:min(n, j+l)
             xk, yk    = x[k], y[k]
-            A[k, j]   += a*(xk*yj-yk*xj)
+            A[k, j]   += xk*yj-yk*xj
         end
      end
 end
@@ -216,27 +216,23 @@ function bunch!(A, l; pivot=:partial)
             nzlen = min(l+1, n-i-1) 
         end
 
-        if pivot == :partial
-            T = view(A, i:n, i:i+1)
-            m, idx = skewfindabsmax(T)
-            if m != abs(T[2, 1])
-                q = idx[1] + i-1
-                p = (idx[2] == 2) ? i : i+1
-                skewrowcolperm!(A, q, p)
-                permidx[p], permidx[q] = permidx[q], permidx[p]
+        if pivot == :partial || pivot == :partial2
+            if pivot == :partial
+                T = view(A, i:n, i:i+1)
+            elseif pivot == :partial2 || pivot == true
+                T = view(A, i:n, i:n)
             end
-
-        elseif pivot == :partial2 || pivot == true
-            T = view(A, i:n, i:n)
-            m, idx = skewfindabsmax(T)
-
-            if m != abs(T[2, 1])
+         
+            m, idx = skewfindmin(T)
+            if m != T[2, 1]
                 q = idx[1] + i-1
                 p = i
                 q1 = idx[2] != 1 ? idx[2] + i-1 : idx[1] + i-1 
-                p1 = i+1 
+                p1 = i+1
+
                 skewrowcolperm!(A, q, p)
                 skewrowcolperm!(A, q1, p1)
+
                 permidx[p],  permidx[q]  = permidx[q],  permidx[p]
                 permidx[p1], permidx[q1] = permidx[q1], permidx[p1]
             end
@@ -246,15 +242,18 @@ function bunch!(A, l; pivot=:partial)
         x = view(A, i+2:n, i)
         y = view(A, i+2:n, i+1)
         B = view(A, i+2:n, i+2:n)
+
         @inbounds for j in 1:nzlen
             xj, yj = x[j], y[j]
             x[j], y[j] = -yj/a, xj/a
         end
+
         if pivot == :partial || pivot == :partial2
             skewrank2update2!(B, a, x, y) 
         else
             bandedskewrank2update!(B, nzlen, a, x, y) 
         end
+
     end
     D = Tridiagonal(A)
     D.dl[2:2:end] .= zero(eltype(D))

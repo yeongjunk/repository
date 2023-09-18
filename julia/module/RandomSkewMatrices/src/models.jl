@@ -22,7 +22,7 @@ end
 
 
 function erbm(N::Integer, rng; dist::Distribution=Uniform(-0.5, 0.5), exponent = 1.0)
-    A = Array{Float64}(undef, N, N)
+    A = zeros(Float64, N, N)
     ltc = Lattice1D(N, 1)
     for n in 1:ltc.N    
        A[n, n] = 0.0
@@ -35,7 +35,7 @@ function erbm(N::Integer, rng; dist::Distribution=Uniform(-0.5, 0.5), exponent =
 end
 
 function prbm(N::Integer, rng::AbstractRNG; dist::Distribution=Uniform(-0.5, 0.5), exponent = 2.0) 
-    A = Array{Float64}(undef, N, N)
+    A = zeros(Float64, N, N)
     ltc = Lattice1D(N, 1)
     for n in 1:ltc.N    
        A[n, n] = 0.0
@@ -48,10 +48,10 @@ function prbm(N::Integer, rng::AbstractRNG; dist::Distribution=Uniform(-0.5, 0.5
 end
 
 function prbm2(N::Integer, rng::AbstractRNG; dist::Distribution=Uniform(-0.5, 0.5), exponent = 2.0) 
-    A = Array{Float64}(undef, N, N)
-    for n in 1:ltc.N    
+    A = zeros(Float64, N, N)
+    for n in 1:N    
        A[n, n] = 0.0
-       for i in 1:ltc.N 
+       for i in 1:N 
            n+i > N && continue
            A[n, n+i] = i^(exponent)/(1+(i)^(2exponent))*rand(rng, dist)
        end
